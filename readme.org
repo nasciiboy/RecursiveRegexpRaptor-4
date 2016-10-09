@@ -1,0 +1,716 @@
+#+TITLE:    Recursive Regexp Raptor (regexp4)
+#+AUTHOR:   nasciiboy
+#+LANGUAGE: en
+#+STARTUP:  showall
+
+lang: [[file:readme_es.org][es]]
+
+regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
+
+* Characteristics
+
+  - Easy to use.
+
+  - No error checking.
+
+  - only regexp
+
+  - The most compact and clear code in a human regexp library.
+
+  - Zero dependencies. Neither the standard C library is present *PURE* C.
+
+  - No explicit dynamic memory management. No =malloc=, =calloc=, =free=, ...
+
+  - Count matches
+
+  - Catchs
+
+  - Replacement catch
+
+  - Placement of specific catches within an array
+
+  - Denial of expressions (experimental)
+
+  - Backreferences
+
+  - Support UTF8 (2-6 bytes)
+
+* Introduction
+
+  *Recurseve Regexp Raptor* is a library search, capture and replacement
+  Regular expressions written in C language from zero, trying to achieve what
+  following:
+
+  - Having most of the features present in any other regexp library.
+
+  - Elegant Code: simple, clear and endowed with grace.
+
+  - Avoid explicit request dynamic memory.
+
+  - Avoid using any external libraries, including the standard library.
+
+  - Be a useful learning material.
+
+
+  There are two parallel developments of this library the first ([[https://github.com/nasciiboy/RecursiveRegexpRaptor][regexp3]]) focuses
+  on simplicity and code, the second (this) still in beta seeks achieve the maximum
+  speed possible implemetando a "table of instructions." In both cases the
+  algorithm is from scratch, and only use C. The first vercion (regexp3)
+  occupies a total of *532 lines* of code, the second (regexp4)  *705 lines*. enjoy!
+
+** Motivation
+
+   C does not have a standard library of regular expressions, although there are
+   several implementations, such as pcre, the regexp.h library of the GNU
+   project, regexp of the Plan 9 operating system, and some other more, the
+   author of this work (which is a little bit retard) found in all code
+   farfetched and mystical divided into several files full of macros, scripts
+   low and cryptic variables. Unable to understand anything and after a retreat
+   to the island of onanista meditacion the author intended to make your own
+   library with casinos and Japanese schoolgirls.
+
+** Development and Testing
+
+   Has been used GNU Emacs (the only true operating system), gcc (6.2.1) & clang
+   compiler (LLVM) 3.8.0, konsole and fish, running in Freidora 24.
+
+   There are two tests for the library, the first ascii test battery is used in
+   the file =ascii_test.c=.
+
+   to test the ascii library
+
+   #+BEGIN_SRC sh
+     gcc ascii_test.c regexp4_ascii.c
+   #+END_SRC
+
+   to the ut8 vercion
+
+   #+BEGIN_SRC sh
+     gcc ascii_test.c regexp4_utf8.c
+   #+END_SRC
+
+   the second battery of tests is exclusive of =regexp4_utf8.c=
+
+   #+BEGIN_SRC sh
+     gcc utf8_test.c regexp4_utf8.c
+   #+END_SRC
+
+   in either case run with
+
+   #+BEGIN_SRC sh
+     ./a.out
+   #+END_SRC
+
+* Use
+
+  To include Recursive Regexp Raptor in their code, place the files =regexp4.h=,
+  =charUtils.h= and =regexp4_ascii.c= or =regexp4_utf8.c= inside the folder of
+  your draft. You must include the header
+
+  #+BEGIN_SRC c
+    #include "regexp4.h"
+  #+END_SRC
+
+  and finally compile well with
+
+  #+BEGIN_SRC sh
+    gcc myProyect.c regexp4_ascii.c
+  #+END_SRC
+
+  or
+
+  #+BEGIN_SRC sh
+    gcc myProyect.c regexp4_utf8.c
+  #+END_SRC
+
+  obviously compile with optimization provides a significant decline,
+  runtime, try =-O3=
+
+** The =regexp4()= function
+
+   This the only search function, its prototype is:
+
+   #+BEGIN_SRC c
+     int regexp4( char *txt, char *re );
+   #+END_SRC
+
+   - txt :: pointer to string on which to perform the search, must end with the
+            sign of termination '\0'.
+
+   - re :: pointer to string containing the regular expression search, You must
+           end with the sign of termination '\0'.
+
+
+   The function returns the number of matches =0= (none) o =n=
+   matches.
+
+   The standard syntax for regular expressions using the character '=\=',
+   unfortunately this sign goes into "conflict" with the syntax of C, by this
+   and trying to keep simple the code, has opted for a alternate syntax detailed
+   below
+
+** Syntax
+
+   - Text search in any location:
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "Raptor" );
+     #+END_SRC
+
+   - Multiple search options "exp1|exp2"
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "Dinosaur|T Rex|Raptor|Triceratops" );
+     #+END_SRC
+
+   - Matches any character '.'
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "R.ptor" );
+     #+END_SRC
+
+   - Zero or one coincidences '?'
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "Ra?ptor" );
+     #+END_SRC
+
+   - One or more coincidences  '+'
+
+     #+BEGIN_SRC c
+       regexp4( "Raaaptor Test", "Ra+ptor" );
+     #+END_SRC
+
+   - Zero or more coincidences '*'
+
+     #+BEGIN_SRC c
+       regexp4( "Raaaptor Test", "Ra*ptor" );
+     #+END_SRC
+
+   - Range of coincidences "{n1,n2}"
+
+     #+BEGIN_SRC c
+       regexp4( "Raaaptor Test", "Ra{0,100}ptor" );
+     #+END_SRC
+
+   - Number of specific matches '{n1}'
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "Ra{1}ptor" );
+     #+END_SRC
+
+   - Range of characters "x-n"
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "Ra-zptor" );
+     #+END_SRC
+
+     - NOTE :: The ranges are valid in any section of the regexp
+               (grouping, character set, catch, plain text).
+
+     - NOTE :: ranges are supported only ASCII characters
+
+   - Sets.
+
+     - WARNING :: Character sets interpret all the signs Special used by the
+                  library (grouping, character set, repetition...)  escape such
+                  signs with ':'
+
+     - Character Set "[abc]"
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "R[uoiea]ptor" );
+       #+END_SRC
+
+     - Range within a set of characters "[x-n]"
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "R[a-z]ptor" );
+       #+END_SRC
+
+     - Investment character set "[^abc]"
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "R[^uoie]ptor" );
+       #+END_SRC
+
+   - UTF8 characters
+
+     #+BEGIN_SRC c
+       regexp4( "R△ptor Test", "R△ptor" );
+     #+END_SRC
+
+     also
+
+     #+BEGIN_SRC c
+       regexp4( "R△ptor Test", "R[△]ptor" );
+     #+END_SRC
+
+   - Coinciding with a character that is a letter ":a"
+
+     #+BEGIN_SRC c
+       regexp4( "R△ptor Test", "R:aptor" );
+     #+END_SRC
+
+   - Coinciding with a character that is not a letter ":A"
+
+     #+BEGIN_SRC c
+       regexp4( "R△ptor Test", "R:Aptor" );
+     #+END_SRC
+
+   - Coinciding with a character that is a number ":d"
+
+     #+BEGIN_SRC c
+       regexp4( "R4ptor Test", "R:dptor" );
+     #+END_SRC
+
+   - Coinciding with a character other than a number ":D"
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "R:Dptor" );
+     #+END_SRC
+
+   - Coinciding with an alphanumeric character ":w"
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "R:wptor" );
+     #+END_SRC
+
+   - Coinciding with a non-alphanumeric character ":W"
+
+     #+BEGIN_SRC c
+       regexp4( "R△ptor Test", "R:Wptor" );
+     #+END_SRC
+
+   - Coinciding with a character that is a space ":s"
+
+     #+BEGIN_SRC c
+       regexp4( "R ptor Test", "R:sptor" );
+     #+END_SRC
+
+   - Coinciding with a character other than a space ":S"
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "R:Sptor" );
+     #+END_SRC
+
+   - Coincidence with utf8 character ":&"
+
+     #+BEGIN_SRC c
+       regexp4( "R△ptor Test", "R:&ptor" );
+     #+END_SRC
+
+   - Escape character with special meaning ":character"
+
+     the characters '|', '(', ')', '<', '>', '[', ']', '?', '+', '*', '{', '}',
+     '-', '#' and '@' as a especial characters, placing one of these characters
+     as is, regardless one correct syntax within the exprecion, can generate
+     infinite loops and other errors.
+
+     #+BEGIN_SRC c
+       regexp4( ":#()|<>", ":::#:(:):|:<:>" );
+     #+END_SRC
+
+   - Grouping "(exp)"
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "(Raptor)" );
+     #+END_SRC
+
+   - Grouping with capture "<exp>"
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "<Raptor>" );
+     #+END_SRC
+
+   - Backreferences "@id"
+
+     the backreferences need one previously captured expression "<exp>", then the
+     number of capture is placed, preceded by '@'
+
+     #+BEGIN_SRC c
+       regexp4( "ae_ea", "<a><e>_@2@1" )
+     #+END_SRC
+
+   - *Denial of exprecion* "([^(exp)])" o "<[^(exp)]>"
+
+     this unconventional exprecion allows the equivalent in other libraries
+     to expreciones type
+
+     #+BEGIN_SRC c
+       a.*b
+     #+END_SRC
+
+     ie "an 'a' followed by anything other than b, followed by b".
+     In this syntax serious
+
+     #+BEGIN_SRC c
+       regexp4( "a123456789b", "a([^(b)])*b" );
+     #+END_SRC
+
+     this syntax is provicional and not execta fault, do not take
+     really.
+
+   - Behavior modifiers
+
+     There are two types of modifiers. The first affects globally the exprecion
+     behaviour, the second affects specific sections. In either case, the syntax
+     is the same, the sign '#', followed by modifiers,
+
+     modifiers global reach is placed at the beginning, the whole
+     and are as follows exprecion
+
+     - Search only the beginning '#^exp'
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "#^Raptor" );
+       #+END_SRC
+
+     - Search only at the end '#$exp'
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "#$Test" );
+       #+END_SRC
+
+     - Search the beginning and end "#^$exp"
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "#^$Raptor Test" );
+       #+END_SRC
+
+     - Stop with the first match "#?exp"
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "#?Raptor Test" );
+       #+END_SRC
+
+     - Search for the string, character by character "#~"
+
+       By default, when a exprecion coincides with a region of
+       text search, the search continues from the end of that
+       coincidence to ignore this behavior, making the search
+       always be character by character this switch is used
+
+       #+BEGIN_SRC c
+         regexp4( "aaaaa", "#~a*" );
+       #+END_SRC
+
+       in this example, without modifying the result it would be a coincidence,
+       however with this switch continuous search immediately after returning
+       character representations of the following five matches.
+
+     - Ignore case sensitive "#*exp"
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "#*RaPtOr TeSt" );
+       #+END_SRC
+
+
+     all of the above switches are compatible with each other ie could
+     search
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "#^$*?~RaPtOr TeSt" );
+     #+END_SRC
+
+     however modifiers '~' and '?' lose sense because the presence of '^' and/or
+     '$'.
+
+     one exprecion type:
+
+     #+BEGIN_SRC c
+       regexp4( "Raptor Test", "#$RaPtOr|#$TeSt" );
+     #+END_SRC
+
+     is erroneous, the modifier after the '|' section would apply between
+     '|' and '#', ie zero, with a return of wrong
+
+     local modifiers are placed after the repeat indicator (if there) and affect
+     the same region affecting indicators repetition, ie characters, sets or
+     groups.
+
+     - Ignore case sensitive "exp#*"
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "(RaPtOr)#* TeS#*t" );
+       #+END_SRC
+
+     - Not ignore case sensitive "exp#/"
+
+       #+BEGIN_SRC c
+         regexp4( "RaPtOr TeSt", "#*(RaPtOr)#/ TES#/T" );
+       #+END_SRC
+
+** Captures
+
+   Catches are indexed according to the order of appearance in the expression
+   for example:
+
+   #+BEGIN_EXAMPLE
+     <   <   >  | <   <   >   >   >
+     = 1 ==========================
+         = 2==    = 2 =========
+                      = 3 =
+   #+END_EXAMPLE
+
+   If the exprecion matches more than one occasion in the search text
+   index is increased according to their appearance that is:
+
+   #+BEGIN_EXAMPLE
+     <   <   >  | <   >   >   <   <   >  | <   >   >   <   <   >  | <   >   >
+     = 1 ==================   = 3 ==================   = 5 ==================
+         = 2==    = 2==           = 4==    = 4==           = 6==    = 6==
+     coincidencia uno         coincidencia dos         coincidencia tres
+   #+END_EXAMPLE
+
+   =cpytCatch= function makes a copy of a catch into an array character, here
+   its prototype:
+
+   #+BEGIN_SRC c
+     char * cpyCatch( char * str, int index )
+   #+END_SRC
+
+   - str :: pointer capable of holding the largest capture.
+
+   - index :: index of the grouping (=1= to =n=).
+
+
+   function returns a pointer to the capture terminated '\0'. an index incorrect
+   return a pointer that begins in '\0'.
+
+   to get the number of catches in a search, using =totalCatch=:
+
+   #+BEGIN_SRC c
+     int totalCatch();
+   #+END_SRC
+
+   returning a value of =0= a =n=.
+
+   Could use this and the previous function to print all catches with a function
+   like this:
+
+   #+BEGIN_SRC c
+     void printCatch(){
+       char str[128];
+       int i = 0, max = totCatch();
+
+       while( ++i <= max )
+         printf( "[%d] >%s<\n", i, cpyCatch( str, i ) );
+     }
+   #+END_SRC
+
+*** =gpsCatch()= y =lenCatch()=
+
+    functions =gpsCatch()= and =lenCatch()= perform the same work =cpyCatch=
+    with the variant not use an array, instead the first returns a pointer to
+    the initial position of capture within the text of search and the second
+    returns the length of the capture.
+
+    #+BEGIN_SRC c
+      char * gpsCatch( int index );
+      int lenCatch   ( int index );
+    #+END_SRC
+
+    the above example with these fuciones, would:
+
+    #+BEGIN_SRC c
+      void printCatch(){
+        int i = 0, max = totCatch();
+
+        while( ++i <= max )
+          printf( "[%d] >%.*s<\n", i, lenCatch( i ), gpsCatch( i ) );
+      }
+    #+END_SRC
+
+*** Place catches in a string
+
+    #+BEGIN_SRC c
+      char * putCatch( char * newStr, char * putStr );
+    #+END_SRC
+
+    =putStr= argument contains the text with which to form the new chain as well
+    as indicators which you catch place. To indicate the insertion a coke
+    capture the '#' sign followed the capture index. for example =putStr=
+    argument could be
+
+    #+BEGIN_SRC c
+      char *putStr = "catch 1 >>#1<< catch 2 >>#2<< catch 747 >>#747<<";
+    #+END_SRC
+
+    =newStr= is an character array large enough to contain the string +
+    catches. the function returns a pointer to the starting position of this
+    arrangement, which ends with the sign of completion '\0'.
+
+    to place the character '#' within the escape string '#' with '#'
+    further, ie:
+
+    #+BEGIN_EXAMPLE
+      "## Comment" -> "# comment"
+    #+END_EXAMPLE
+
+*** Replace a catch
+
+    Replacement operates on an array of characters in which is placed the text
+    search modifying a specified catch by a string text, the function in
+    charge of this work is =rplCatch=, its prototype is:
+
+    #+BEGIN_SRC c
+      char * rplCatch( char * newStr, char * rplStr, int id );
+    #+END_SRC
+
+    - newStr :: character array dimension text is placed dende original on which
+                is carried out and the replacement text of catches.
+
+    - rplStr :: replacement text capture.
+
+    - id     :: *Capture identifier* after the order of appearance within
+                regular exprecion. Spend a wrong index, place a unaltered copy
+                of the search string on the settlement = Newstr =.
+
+
+    in this case the use of the argument =id= unlike function =getCatch= does
+    not refer to a "catch" in specific, that is no matter how much of occasions
+    that has captured a exprecion, the identifier indicates the *position*
+    within the exprecion itself, ie:
+
+    #+BEGIN_EXAMPLE
+         <   <   >  | <   <   >   >   >
+      id = 1 ==========================
+      id     = 2==    = 2 =========
+      id                  = 3 =
+      capturing position within the exprecion
+    #+END_EXAMPLE
+
+    The amendment affects so
+
+    #+BEGIN_EXAMPLE
+      <   <   >  | <   >   >       <   <   >  | <   >   >      <   <   >  | <   >   >
+      = 1 ==================       = 1 ==================      = 1 ==================
+          = 2==    = 2==               = 2==    = 2==              = 2==    = 2==
+      capture one                  "..." two                   "..." Three
+    #+END_EXAMPLE
+
+** Metacharacters search
+
+   - =:d= :: digit from 0 to 9.
+   - =:D= :: any character other than a digit from 0 to 9.
+   - =:a= :: any character is a letter (a-z, A-Z)
+   - =:A= :: any character other than a letter
+   - =:w= :: any alphanumeric character.
+   - =:W= :: any non-alphanumeric character.
+   - =:s= :: any blank space character.
+   - =:S= :: any character other than a blank.
+   - =:&= :: Non-ASCII character (in UTF8 version only).
+
+   - =:|= :: Vertical bar
+   - =:^= :: Caret
+   - =:$= :: Dollar sign
+   - =:(= :: Left parenthesis
+   - =:)= :: Right parenthesis
+   - =:<= :: Greater than
+   - =:>= :: Less than
+   - =:[= :: Left bracket
+   - =:]= :: Right bracket
+   - =:.= :: Point
+   - =:?= :: Interrogacion
+   - =:+= :: More
+   - =:-= :: Less
+   - =:*= :: Asterisk
+   - =:{= :: Left key
+   - =:}= :: Right key
+   - =:#= :: Modifier
+   - =::= :: Colons
+
+
+   additionally use the proper c syntax to place characters new line, tab, ...,
+   etc. Similarly you can use the c syntax for "placing" characters in octal,
+   hexadecimal or unicode.
+
+** Examples of use
+
+   =ascii_test.c= file contains a wide variety of tests that are useful as
+   examples of use, these include the next:
+
+   #+BEGIN_SRC c
+     regexp4( "07-07-1777", "<0?[1-9]|[12][0-9]|3[01]><[/:-\\]><0?[1-9]|1[012]>@2<[12][0-9]{3}>" );
+   #+END_SRC
+
+   captures a date format string, separately day, stripper, month and year. The
+   separator has to coincider the two occasions that appears
+
+   #+BEGIN_SRC c
+      regexp4( "https://en.wikipedia.org/wiki/Regular_expression", "(https?|ftp):://<[^:s/:<:>]+></[^:s:.:<:>,/]+>*<.>*" );
+   #+END_SRC
+
+   capture something like a web link
+
+   #+BEGIN_SRC c
+     regexp4( "<mail>nasciiboy@gmail.com</mail>", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><(:.[A-Za-z0-9]{2})*" );
+   #+END_SRC
+
+   capture sections (user, site, domain) something like an email.
+
+   #+BEGIN_SRC c
+      regexp4( "aa0123aa", "<aa><[^(aa)]>*<aa>" );
+   #+END_SRC
+
+   capturing a string containing "aa", then captures anything not
+   is "aa" and finally catch again "aa"
+
+* Benchmarks
+
+  The following popular engines were choosen:
+
+  - [[http://www.pcre.org/][PCRE2 10.10]]
+  - [[https://github.com/laurikari/tre/][tre 0.8.0]]
+  - [[http://www.geocities.jp/kosako3/oniguruma/][Oniguruma 5.9.6]]
+  - [[https://github.com/google/re2][re2 by Google]]
+  - [[http://sljit.sourceforge.net/pcre.html][PCRE2 10.10 with sljit JIT compiler support]]
+
+
+  vs the raptor (regexp4_ascii.c)
+
+** Results
+*** x86-64 bit Intel Cerelon 847 1.1GHz (GCC 6.2.1, GNU/Linux)
+
+    #+BEGIN_HTML
+      <table class="results" border="1" width="100%">
+      <tbody><tr><th>Regular expression</th><th>PCRE</th><th>PCRE<br>-DFA</th><th>TRE</th><th>Onig-<br>uruma</th><th>RE2</th><th>PCRE<br>-JIT</th><th class="raptor">regexp3</th><th class="raptor">regexp4</th></tr>
+      <tr><td class="pattern"><table><tr><td>.|\n</td></tr><tr><td class="raptor-pattern">.</td></tr></table></td><td class="time">4364 ms (20045118)</td><td class="time">5152 ms (20045118)</td><td class="time">6641 ms (20045118)</td><td class="time">2202 ms (20045118)</td><td class="time">7566 ms (20045118)</td><td class="time">1086 ms (20045118)</td><td class="time">1756 ms (20045118)</td><td class="time">774 ms (20045118)</td></tr>
+      <tr><td class="pattern"><table><tr><td>\w</td></tr><tr><td class="raptor-pattern">:w</td></tr></table></td><td class="time">2837 ms (14751878)</td><td class="time">4292 ms (14751878)</td><td class="time">4693 ms (14751878)</td><td class="time">2243 ms (14751878)</td><td class="time">5748 ms (14751878)</td><td class="time">946 ms (14751878)</td><td class="time">1849 ms (14750958)</td><td class="time">899 ms (14750958)</td></tr>
+      <tr><td class="pattern"><table><tr><td>\d</td></tr><tr><td class="raptor-pattern">:d</td></tr></table></td><td class="time">67 ms (27084)</td><td class="time">69 ms (27084)</td><td class="time">1058 ms (27084)</td><td class="time">116 ms (27084)</td><td class="time">235 ms (27084)</td><td class="time">58 ms (27084)</td><td class="time">1755 ms (27084)</td><td class="time">501 ms (27084)</td></tr>
+      <tr><td class="pattern"><table><tr><td>\S</td></tr><tr><td class="raptor-pattern">:S</td></tr></table></td><td class="time">2992 ms (15451664)</td><td class="time">3280 ms (15451664)</td><td class="time">4634 ms (15451664)</td><td class="time">1851 ms (15451664)</td><td class="time">6016 ms (15451664)</td><td class="time">895 ms (15451664)</td><td class="time">1869 ms (15451664)</td><td class="time">893 ms (15451664)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[.\s]+</td></tr><tr><td class="raptor-pattern">[:.:s]+</td></tr></table></td><td class="time">896 ms (3430783)</td><td class="time">1089 ms (3430783)</td><td class="time">1897 ms (991813)</td><td class="time">762 ms (3430783)</td><td class="time">1774 ms (3430783)</td><td class="time">388 ms (3430783)</td><td class="time">4583 ms (3430783)</td><td class="time">1321 ms (3430783)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[\n.]+</td></tr><tr><td class="raptor-pattern">[\n:.]+</td></tr></table></td><td class="time">173 ms (438367)</td><td class="time">238 ms (438367)</td><td class="time">1407 ms (438367)</td><td class="time">222 ms (438367)</td><td class="time">430 ms (438367)</td><td class="time">46 ms (438367)</td><td class="time">4174 ms (438367)</td><td class="time">971 ms (438367)</td></tr>
+      <tr><td class="pattern"><table><tr><td>e</td></tr><tr><td class="raptor-pattern">e</td></tr></table></td><td class="time">365 ms (1781425)</td><td class="time">451 ms (1781425)</td><td class="time">498 ms (1781425)</td><td class="time">405 ms (1781425)</td><td class="time">747 ms (1781425)</td><td class="time">136 ms (1781425)</td><td class="time">1721 ms (1781425)</td><td class="time">610 ms (1781425)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(((((e)))))</td></tr><tr><td class="raptor-pattern">&lt;&lt;&lt;&lt;&lt;e&gt;&gt;&gt;&gt;&gt;</td></tr></table></td><td class="time">1234 ms (1781425)</td><td class="time">1187 ms (1781425)</td><td class="time">496 ms (1781425)</td><td class="time">878 ms (1781425)</td><td class="time">749 ms (1781425)</td><td class="time">203 ms (1781425)</td><td class="time">26751 ms (1781425)</td><td class="time">3496 ms (1781425)</td></tr>
+      <tr><td class="pattern"><table><tr><td>((((((((((e))))))))))</td></tr><tr><td class="raptor-pattern">&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;e&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</td></tr></table></td><td class="time">1908 ms (1781425)</td><td class="time">1908 ms (1781425)</td><td class="time">497 ms (1781425)</td><td class="time">1162 ms (1781425)</td><td class="time">765 ms (1781425)</td><td class="time">321 ms (1781425)</td><td class="time">84651 ms (1781425)</td><td class="time">5335 ms (1781425)</td></tr>
+      <tr><td class="pattern"><table><tr><td>Twain</td></tr><tr><td class="raptor-pattern">Twain</td></tr></table></td><td class="time">11 ms (2388)</td><td class="time">50 ms (2388)</td><td class="time">1021 ms (2388)</td><td class="time">53 ms (2388)</td><td class="time">8 ms (2388)</td><td class="time">51 ms (2388)</td><td class="time">4714 ms (2388)</td><td class="time">538 ms (2388)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(Twain)</td></tr><tr><td class="raptor-pattern">&lt;Twain&gt;</td></tr></table></td><td class="time">14 ms (2388)</td><td class="time">50 ms (2388)</td><td class="time">1010 ms (2388)</td><td class="time">53 ms (2388)</td><td class="time">8 ms (2388)</td><td class="time">51 ms (2388)</td><td class="time">9531 ms (2388)</td><td class="time">872 ms (2388)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(?i)Twain</td></tr><tr><td class="raptor-pattern">#*Twain</td></tr></table></td><td class="time">198 ms (2657)</td><td class="time">294 ms (2657)</td><td class="time">1311 ms (2657)</td><td class="time">399 ms (2657)</td><td class="time">261 ms (2657)</td><td class="time">53 ms (2657)</td><td class="time">4792 ms (2657)</td><td class="time">644 ms (2657)</td></tr>
+      <tr><td class="pattern"><table><tr><td>((T|t)(w|W)(a|A)i([a-z]|1))</td></tr><tr><td class="raptor-pattern">&lt;&lt;T|t&gt;&lt;w|W&gt;&lt;a|A&gt;i&lt;[a-z]|1&gt;&gt;</td></tr></table></td><td class="time">615 ms (2427)</td><td class="time">534 ms (2427)</td><td class="time">1913 ms (2427)</td><td class="time">348 ms (2427)</td><td class="time">260 ms (2427)</td><td class="time">67 ms (2427)</td><td class="time">25165 ms (2427)</td><td class="time">2590 ms (2427)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[a-z]shing</td></tr><tr><td class="raptor-pattern">[a-z]shing</td></tr></table></td><td class="time">1434 ms (1877)</td><td class="time">2351 ms (1877)</td><td class="time">1581 ms (1877)</td><td class="time">50 ms (1877)</td><td class="time">350 ms (1877)</td><td class="time">49 ms (1877)</td><td class="time">7466 ms (1877)</td><td class="time">1447 ms (1877)</td></tr>
+      <tr><td class="pattern"><table><tr><td>Huck[a-zA-Z]+|Saw[a-zA-Z]+</td></tr><tr><td class="raptor-pattern">Huck[a-zA-Z]+|Saw[a-zA-Z]+</td></tr></table></td><td class="time">73 ms (396)</td><td class="time">78 ms (396)</td><td class="time">1598 ms (396)</td><td class="time">121 ms (396)</td><td class="time">225 ms (396)</td><td class="time">9 ms (396)</td><td class="time">9074 ms (396)</td><td class="time">1492 ms (396)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[a-q][^u-z]{13}x</td></tr><tr><td class="raptor-pattern">[a-q][^u-z]{13}x</td></tr></table></td><td class="time">1748 ms (4929)</td><td class="time">6371 ms (4929)</td><td class="time">4376 ms (4929)</td><td class="time">154 ms (4929)</td><td class="time">10241 ms (4929)</td><td class="time">5 ms (4929)</td><td class="time">15469 ms (4929)</td><td class="time">3935 ms (4929)</td></tr>
+      <tr><td class="pattern"><table><tr><td>Tom|Sawyer|Huckleberry|Finn</td></tr><tr><td class="raptor-pattern">Tom|Sawyer|Huckleberry|Finn</td></tr></table></td><td class="time">97 ms (3015)</td><td class="time">104 ms (3015)</td><td class="time">2764 ms (3015)</td><td class="time">140 ms (3015)</td><td class="time">229 ms (3015)</td><td class="time">85 ms (3015)</td><td class="time">22447 ms (3015)</td><td class="time">2773 ms (3015)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(Tom|Sawyer|Huckleberry|Finn)</td></tr><tr><td class="raptor-pattern">&lt;Tom|Sawyer|Huckleberry|Finn&gt;</td></tr></table></td><td class="time">101 ms (3015)</td><td class="time">107 ms (3015)</td><td class="time">2789 ms (3015)</td><td class="time">142 ms (3015)</td><td class="time">229 ms (3015)</td><td class="time">83 ms (3015)</td><td class="time">38332 ms (3015)</td><td class="time">3319 ms (3015)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[hHeELlLlOo][hHeELlLlOo][hHeELlLlOo][hHeELlLlOo][hHeELlLlOo]</td></tr><tr><td class="raptor-pattern">[hHeELlLlOo][hHeELlLlOo][hHeELlLlOo][hHeELlLlOo][hHeELlLlOo]</td></tr></table></td><td class="time">612 ms (534)</td><td class="time">902 ms (534)</td><td class="time">3178 ms (534)</td><td class="time">660 ms (534)</td><td class="time">326 ms (534)</td><td class="time">244 ms (534)</td><td class="time">17300 ms (534)</td><td class="time">1637 ms (534)</td></tr>
+      <tr><td class="pattern"><table><tr><td>Tom.{10,25}river|river.{10,25}Tom</td></tr><tr><td class="raptor-pattern">&lt;Tom([^(river|\n)]){10,25}river|river([^(Tom|\n)]){10,25}Tom&gt;</td></tr></table></td><td class="time">205 ms (2)</td><td class="time">260 ms (2)</td><td class="time">1773 ms (2)</td><td class="time">229 ms (2)</td><td class="time">309 ms (2)</td><td class="time">46 ms (2)</td><td class="time">41711 ms (2)</td><td class="time">1988 ms (2)</td></tr>
+      <tr><td class="pattern"><table><tr><td>ing[^a-zA-Z]</td></tr><tr><td class="raptor-pattern">ing[^a-zA-Z]</td></tr></table></td><td class="time">135 ms (85956)</td><td class="time">250 ms (85956)</td><td class="time">1119 ms (85956)</td><td class="time">92 ms (85956)</td><td class="time">101 ms (85956)</td><td class="time">54 ms (85956)</td><td class="time">4067 ms (85956)</td><td class="time">574 ms (85956)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[a-zA-Z]ing[^a-zA-Z]</td></tr><tr><td class="raptor-pattern">[a-zA-Z]ing[^a-zA-Z]</td></tr></table></td><td class="time">1499 ms (85823)</td><td class="time">2389 ms (85823)</td><td class="time">1836 ms (85823)</td><td class="time">95 ms (85823)</td><td class="time">377 ms (85823)</td><td class="time">58 ms (85823)</td><td class="time">7917 ms (85823)</td><td class="time">1555 ms (85823)</td></tr>
+      <tr><td class="pattern"><table><tr><td>([a-zA-Z]+ing)</td></tr><tr><td class="raptor-pattern">&lt;([^(ing|:A)])+ing(([^(ing|:A)])*ing)*&gt;</td></tr></table></td><td class="time">3954 ms (95863)</td><td class="time">5586 ms (95863)</td><td class="time">2081 ms (95863)</td><td class="time">2377 ms (95863)</td><td class="time">389 ms (95863)</td><td class="time">231 ms (95863)</td><td class="time">55897 ms (95863)</td><td class="time">10791 ms (95863)</td></tr>
+      <tr><td class="pattern"><table><tr><td>([A-Za-z]awyer|[A-Za-z]inn)\s</td></tr><tr><td class="raptor-pattern">&lt;[A-Za-z]awyer|[A-Za-z]inn&gt;:s</td></tr></table></td><td class="time">3052 ms (313)</td><td class="time">3676 ms (313)</td><td class="time">2925 ms (313)</td><td class="time">543 ms (313)</td><td class="time">343 ms (313)</td><td class="time">106 ms (313)</td><td class="time">27720 ms (313)</td><td class="time">4402 ms (313)</td></tr>
+    #+END_HTML
+
+    The testing environment [[https://github.com/nasciiboy/RecursiveRegexpRaptor-vs-Benchmarks][here]] (The original testing environment by [[https://sourceforge.net/u/dark100/profile/][dark100]]
+    can be downloaded from [[http://sljit.sourceforge.net/regex-test.tgz][here]]). Just Download, type =make= and run =runtest=.
+
+* License
+
+  This project is not "open source" is *free software*, and according to this,
+  use the GNU GPL Version 3. Any work that includes used or resulting code of
+  this library, you must comply with the terms of this license.
+
+* Contact, contribution and other things
+
+  [[mailto:nasciiboy@gmail.com]]
