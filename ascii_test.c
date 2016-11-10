@@ -1111,12 +1111,12 @@ int raptorTest(){
   CATCH_TEST( "abc", "<<a|b>x|abc>", 2, "" );
   CATCH_TEST( "abc", "<x<a|b>|abc>", 1, "abc" );
   CATCH_TEST( "abc", "<x<a|b>|abc>", 2, "" );
-  CATCH_TEST( "abc abc abc", "<a|b|c>", 9, "c" );
-  CATCH_TEST( "abc abc abc", "<(a|b|c)(a|b|c)(a|b|c)>", 3, "abc" );
-  CATCH_TEST( "abc abc abc", "<(a|b|c)(a|b|c)(a|b|c)> ", 2, "abc" );
-  CATCH_TEST( "abc abc abc", "#?<(a|b|c)(a|b|c)(a|b|c)>", 1, "abc" );
-  CATCH_TEST( "abc abc abc", "#?<(a|b|c)(a|b|c)((a|b)|x)>", 1, "" );
-  CATCH_TEST( "abc abc abx", "#?<(a|b|c)(a|b|c)((a|b)|x)>", 1, "abx" );
+  CATCH_TEST( "abc bca cab", "<a|b|c>", 9, "b" );
+  CATCH_TEST( "abc bca cab", "<(a|b|c)(a|b|c)(a|b|c)>", 3, "cab" );
+  CATCH_TEST( "abc bca cab", "<(a|b|c)(a|b|c)(a|b|c)> ", 2, "bca" );
+  CATCH_TEST( "abc bca cab", "#?<(a|b|c)(a|b|c)(a|b|c)>", 1, "abc" );
+  CATCH_TEST( "abc bca abc", "#?<(a|b|c)(a|b|c)(x)>", 1, "" );
+  CATCH_TEST( "abc bca abx", "#?<(a|b|c)(a|b|c)(x)>", 1, "abx" );
   CATCH_TEST( "abc iecc oeb", "<<(a|e)|(i|o)>e<b|c>|abc>", 1, "abc" );
   CATCH_TEST( "abc iecc oeb", "<<(a|e)|(i|o)>e<b|c>|abc>", 2, "iec" );
   CATCH_TEST( "abc iecc oeb", "<<(a|e)|(i|o)>e<b|c>|abc>", 3, "i" );
@@ -1274,6 +1274,15 @@ int raptorTest(){
   REPLACE_TEST( "aaabaaa", "<x*>"  , 1, "z", "zazazazbzazaza" );
   REPLACE_TEST( "aaabaaa", "<x{1}>", 1, "z", "aaabaaa" );
 
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a><b>"   , 1, "e", "aaebaaa aaebaaa" );
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a>?<b>"  , 1, "e", "aaebaaa aaebaaa" );
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a>+<b>"  , 1, "e", "ebaaa ebaaa" );
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a>*<b>"  , 1, "e", "ebaaa ebaaa" );
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a>{1}<b>", 1, "e", "aaebaaa aaebaaa" );
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a?><b>"  , 1, "e", "aaebaaa aaebaaa" );
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a+><b>"  , 1, "e", "ebaaa ebaaa" );
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a*><b>"  , 1, "e", "ebaaa ebaaa" );
+  REPLACE_TEST( "aaabaaa aaabaaa", "<a{1}><b>", 1, "e", "aaebaaa aaebaaa" );
 
   REPLACE_TEST( "Raptor Test", "<Raptor>", 1, "Captor", "Captor Test"   );
   REPLACE_TEST( "Raptor Test", "<Raptor>", 0, "Captor", "Raptor Test"   );
@@ -1306,6 +1315,7 @@ int raptorTest(){
   PUT_TEST( "a a a", "<a>", "#1#2#3", "aaa" );
   PUT_TEST( "abcd", "<a|b|c|d>", "#4 #3 #2 #1", "d c b a" );
   PUT_TEST( "1 2 3 4 5 6 7 8 9", "<1|2|3|4|5|6|7|8|9>", "#5 #6 #7 #8 #9 #1 #2 #3 #4", "5 6 7 8 9 1 2 3 4" );
+  PUT_TEST( "1 2 3 4 5 6 7 8 9", "<1>|<2>|<3>|<4>|<5>|<6>|<7>|<8>|<9>", "#5 #6 #7 #8 #9 #1 #2 #3 #4", "5 6 7 8 9 1 2 3 4" );
   PUT_TEST( "Raptor Test", "<aptor|est>", "C#1 F#2", "Captor Fest" );
   PUT_TEST( "Raptor Test", "<aptor|est>", "C#5 F#2", "C Fest" );
   PUT_TEST( "Raptor Test", "<aptor|est>", "C#a F#2", "Ca Fest" );
