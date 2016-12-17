@@ -1326,6 +1326,8 @@ int raptorTest(){
   PUT_TEST( "Raptor Test", "<aptor|est>", "##Raptor ##Test", "#Raptor #Test" );
   PUT_TEST( "Raptor Test Fest", "<Raptor> <Test>", "#1_#2", "Raptor_Test" );
 
+  PUT_TEST( "123456789", "#$<<:d><:d>>", "[#2] [#3] [#1]", "[8] [9] [89]" );
+
   PUT_TEST( "make a new Line", "#^<[^n]+>", "#1raptor", "make a raptor" );
   PUT_TEST( "07-07-1777", "<0?[1-9]|[12][0-9]|3[01]>[/:-\\]<0?[1-9]|1[012]>[/:-\\]<[12][0-9]{3}>", "d:#1 m:#2 y:#3", "d:07 m:07 y:1777" );
   PUT_TEST( "fecha: 07-07-1777", "<0?[1-9]|[12][0-9]|3[01]>[/:-\\]<0?[1-9]|1[012]>[/:-\\]<[12][0-9]{3}>", "d:#1 m:#2 y:#3", "d:07 m:07 y:1777" );

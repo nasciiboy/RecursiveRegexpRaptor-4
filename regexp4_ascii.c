@@ -351,7 +351,10 @@ int regexp4( char *txt, char *re ){
     text.len   = Catch.len[0] - i;
 
     if( trekking( 0 ) ){
-      if     (  global_mods & MOD_OMEGA    ){ if( text.pos == text.len ) return TRUE; }
+      if     (  global_mods & MOD_OMEGA    ){
+        if( text.pos == text.len ) return TRUE;
+        else Catch.index = 1;
+      }
       else if(  global_mods & MOD_LONLEY   )                             return TRUE;
       else if( (global_mods & MOD_FwrByChar) || text.pos == 0 )          result++;
       else   {  forward = text.pos;                                      result++; }

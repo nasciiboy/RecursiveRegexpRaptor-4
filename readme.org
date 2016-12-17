@@ -56,7 +56,7 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
   on simplicity and code, the second (this) still in beta seeks achieve the maximum
   speed possible implementing a "table of instructions." In both cases the
   algorithm is from scratch, and only use C. The first vercion (regexp3)
-  occupies a total of *510 lines* of code, the second (regexp4)  *672 lines*. enjoy!
+  occupies a total of *513 lines* of code, the second (regexp4)  *675 lines*. enjoy!
 
 ** Motivation
 
