@@ -7,6 +7,8 @@ lang: [[file:readme_es.org][es]]
 
 regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
 
+raptor-book (draft (spanish)) : [[https://github.com/nasciiboy/raptor-book/][here]]
+
 * Characteristics
 
   - Easy to use.
@@ -56,7 +58,7 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
   on simplicity and code, the second (this) still in beta seeks achieve the maximum
   speed possible implementing a "table of instructions." In both cases the
   algorithm is from scratch, and only use C. The first vercion (regexp3)
-  occupies a total of *513 lines* of code, the second (regexp4)  *675 lines*. enjoy!
+  occupies a total of *510 lines* of code, the second (regexp4)  *686 lines*. enjoy!
 
 ** Motivation
 
@@ -71,8 +73,8 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
 
 ** Development and Testing
 
-   Has been used GNU Emacs (the only true operating system), gcc (6.2.1) & clang
-   compiler (LLVM) 3.8.0, konsole and fish, running in Freidora 25.
+   Has been used GNU Emacs (the only true operating system), gcc (6.3.1) & clang
+   compiler (LLVM) 3.8.1, konsole and fish, running in Freidora 25.
 
    There are two tests for the library, the first ascii test battery is used in
    the file =ascii_test.c=.
@@ -131,7 +133,7 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
    This the only search function, its prototype is:
 
    #+BEGIN_SRC c
-     int regexp4( char *txt, char *re );
+     int regexp4( const char *txt, const char *re );
    #+END_SRC
 
    - txt :: pointer to string on which to perform the search, must end with the
@@ -199,22 +201,13 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
        regexp4( "Raptor Test", "Ra{1}ptor" );
      #+END_SRC
 
-   - Range of characters "x-n"
+   - Minimum Number of matches '{n1,}'
 
      #+BEGIN_SRC c
-       regexp4( "Raptor Test", "Ra-zptor" );
+       regexp3( "Raaaptor Test", "Ra{2,}ptor" );
      #+END_SRC
 
-     - NOTE :: The ranges are valid in any section of the regexp
-               (grouping, character set, catch, plain text).
-
-     - NOTE :: ranges are supported only ASCII characters
-
    - Sets.
-
-     - WARNING :: Character sets interpret all the signs Special used by the
-                  library (grouping, character set, repetition...)  escape such
-                  signs with ':'
 
      - Character Set "[abc]"
 
@@ -222,10 +215,16 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
          regexp4( "Raptor Test", "R[uoiea]ptor" );
        #+END_SRC
 
-     - Range within a set of characters "[x-n]"
+     - Range within a set of characters "[a-b]"
 
        #+BEGIN_SRC c
          regexp4( "Raptor Test", "R[a-z]ptor" );
+       #+END_SRC
+
+     - Metacaracter within a set of characters "[:meta]"
+
+       #+BEGIN_SRC c
+         regexp4( "Raptor Test", "R[:w]ptor" );
        #+END_SRC
 
      - Investment character set "[^abc]"
@@ -309,6 +308,13 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
 
      #+BEGIN_SRC c
        regexp4( ":#()|<>", ":::#:(:):|:<:>" );
+     #+END_SRC
+
+     The special characters (except the metacharacter) lose their meaning within
+     a set
+
+     #+BEGIN_SRC c
+       regexp4( "()<>[]|{}*#@?+", "[()<>:[:]|{}*?+#@]" );
      #+END_SRC
 
    - Grouping "(exp)"
@@ -464,7 +470,7 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
    its prototype:
 
    #+BEGIN_SRC c
-     char * cpyCatch( char * str, int index )
+     char * cpyCatch( char * str, const int index )
    #+END_SRC
 
    - str :: pointer capable of holding the largest capture.
@@ -504,8 +510,8 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
     returns the length of the capture.
 
     #+BEGIN_SRC c
-      char * gpsCatch( int index );
-      int lenCatch   ( int index );
+      int          lenCatch( const int index );
+      const char * gpsCatch( const int index );
     #+END_SRC
 
     the above example with these fuciones, would:
@@ -522,7 +528,7 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
 *** Place catches in a string
 
     #+BEGIN_SRC c
-      char * putCatch( char * newStr, char * putStr );
+      char * putCatch( char * newStr, const char * putStr );
     #+END_SRC
 
     =putStr= argument contains the text with which to form the new chain as well
@@ -552,7 +558,7 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
     charge of this work is =rplCatch=, its prototype is:
 
     #+BEGIN_SRC c
-      char * rplCatch( char * newStr, char * rplStr, int id );
+      char * rplCatch( char * newStr, const char * rplStr, const int id );
     #+END_SRC
 
     - newStr :: character array dimension text is placed dende original on which
@@ -642,7 +648,7 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
    capture something like a web link
 
    #+BEGIN_SRC c
-     regexp4( "<mail>nasciiboy@gmail.com</mail>", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><(:.[A-Za-z0-9]{2})*" );
+     regexp3( "<mail>nasciiboy@gmail.com</mail>", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><:.[A-Za-z0-9]{2}>*" );
    #+END_SRC
 
    capture sections (user, site, domain) something like an email.
@@ -655,36 +661,120 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
    is "yy" and finally catch again "yy"
 
 * Hacking
+** algorithm
+*** Flow Diagram
 
-  #+BEGIN_EXAMPLE
-                 char * re
-                     │◀──────────────────────────────┐
-                     ▼                               │
-            ┌─────────────────┐                      │
-            │store start point│                      │
-            └─────────────────┘                      │
-                     │                               │
-                     ▼                               │
-         ┌───────────────────────┐                   │
-         │get the execution paths│                   │
-         └───────────────────────┘                   │
-                     │                               │
-                     ▼                               │
-              ┌────────────┐                         │
-              │get builders│                         │
-              └────────────┘                         │
-                     │                               │
-      ┌──────┬───────┼─────┬──────┬───────┬──────┐   │
-      ▼      ▼       ▼     ▼      ▼       ▼      ▼   │
-    ┌───┐┌───────┐┌────┐┌─────┐┌──────┐┌─────┐┌────┐ │
-    │SET││RANGEAB││META││POINT││SIMPLE││GROUP││HOOK│ │
-    └───┘└───────┘└────┘└─────┘└──────┘└─────┘└────┘ │
-      └──────┴───────┼─────┴──────┘       └──────┴───┘
-                     ▼
-              ┌─────────────┐
-              │find builders│
-              └─────────────┘
-  #+END_EXAMPLE
+    #+BEGIN_EXAMPLE
+           ┌────┐
+           │init│
+           └────┘
+              │◀───────────────────────────────────┐
+              ▼                                    │
+       ┌──────────────┐                            │
+       │loop in string│                            │
+       └──────────────┘                            │
+              │                                    │
+              ▼                                    │
+       ┌─────────────┐  no   ┌─────────────┐       │
+      <│end of string│>────▶<│search regexp│>──────┘
+       └─────────────┘       └─────────────┘ no match
+              │ yes                 │ match
+              ▼                     ▼
+      ┌────────────────┐     ┌─────────────┐
+      │report: no match│     │report: match│
+      └────────────────┘     └─────────────┘
+              │                     │
+              │◀────────────────────┘
+              ▼
+            ┌───┐
+            │end│
+            └───┘
+    #+END_EXAMPLE
+
+    =search regexp= version one
+
+    #+BEGIN_EXAMPLE
+                                                              ┌──────────────────────────────┐
+      ┏━━━━━━━━━━━━━┓                                         ▼                              │
+      ┃search regexp┃                                  ┌───────────┐                         │
+      ┗━━━━━━━━━━━━━┛                                  │get builder│                         │
+                                                       └───────────┘                         │
+                                                              │                              │
+                                                              ▼                              │
+                                                      ┌───────────────┐  no  ┌────────────┐  │
+                                                     <│we have builder│>────▶│finish: the │  │
+                                                      └───────────────┘      │path matches│  │
+                                                              │ yes          └────────────┘  │
+                                    ┌────────┬─────┬──────────┼────────────┬──────────┐      │
+                                    ▼        ▼     ▼          ▼            ▼          ▼      │
+                              ┌───────────┐┌───┐┌─────┐┌─────────────┐┌─────────┐┌────────┐  │
+                              │alternation││set││point││metacharacter││character││grouping│  │
+                              └───────────┘└───┘└─────┘└─────────────┘└─────────┘└────────┘  │
+                                    │        │     │          │            │          │      │
+                                    ▼        └─────┴──────────┼────────────┘          └──────┤
+                           ┌────────────────┐                 │                              │
+                  ┌────────│ save position  │                 ▼                              │
+                  │        └────────────────┘          ┌─────────────┐  no match             │
+                  │        ┌────────────────┐         <│match builder│>──────────┐           │
+                  ▼◀───────│restore position│◀────┐    └─────────────┘           │           │
+           ┌──────────────┐└────────────────┘     │           │ match            │           │
+           │loop in paths │                       │           ▼                  ▼           │
+           └──────────────┘                       │   ┌─────────────────┐ ┌───────────────┐  │
+                  │                               │   │advance in string│ │finish, the    │  │
+                  ▼                               │   └─────────────────┘ │path no matches│  │
+            ┌────────────┐ yes  ┌─────────────┐   │           │           └───────────────┘  │
+           <│we have path│>───▶<│search regexp│>──┘           └──────────────────────────────┘
+            └────────────┘      └─────────────┘ no match
+                  │ no          match │
+                  ▼                   ▼
+      ┌───────────────────────┐ ┌────────────┐
+      │finish, without matches│ │finish, the │
+      └───────────────────────┘ │path matches│
+                                └────────────┘
+    #+END_EXAMPLE
+
+    =search regexp= version two
+
+    #+BEGIN_EXAMPLE
+                     ┌─────────────┐
+                     │save position│                             ┏━━━━━━━━━━━━━┓
+                     └─────────────┘                             ┃search regexp┃
+              ┌────────────▶│                                    ┗━━━━━━━━━━━━━┛
+              │             ▼
+              │      ┌──────────────┐
+              │      │loop in paths │
+              │      └──────────────┘
+              │             │                       ┌────────────────────────────────┐
+              │             ▼                       ▼                                │
+              │       ┌────────────┐   yes    ┌───────────┐                          │
+              │      <│we have path│>────────▶│get builder│                          │
+              │       └────────────┘          └───────────┘                          │
+              │             │ no                    │                                │
+              │             ▼                       ▼                                │
+              │  ┌───────────────────────┐   ┌───────────────┐ no  ┌─────────────┐   │
+              │  │finish: without matches│  <│we have builder│>───▶│finish: the  │   │
+              │  └───────────────────────┘   └───────────────┘     │path matches │   │
+              │                                     │ yes          └─────────────┘   │
+              │                    ┌─────┬──────────┼────────────┬─────────┐         │
+              │                    ▼     ▼          ▼            ▼         ▼         │
+      ┌────────────────┐        ┌───┐┌─────┐┌─────────────┐┌─────────┐┌────────┐     │
+      │restore position│        │set││point││metacharacter││character││grouping│     │
+      └────────────────┘        └───┘└─────┘└─────────────┘└─────────┘└────────┘     │
+              ▲                    │     │          │            │         │         │
+              │                    └─────┴──────────┼────────────┘         │         │
+              │                                     ▼                      ▼         │
+       ┌───────────────┐      no match       ┌─────────────┐        ┌─────────────┐  │
+       │finish: the    │◀────────┬──────────<│match builder│>  ┌───<│search regexp│> │
+       │path no matches│         │           └─────────────┘   │    └─────────────┘  │
+       └───────────────┘         │                  │ match    │           │         │
+                                 └────────────────┈┈│┈┈────────┘           │ match   │
+                                                    ▼                      │         │
+                                           ┌─────────────────┐             └─────────┤
+                                           │advance in string│                       │
+                                           └─────────────────┘                       │
+                                                    │                                │
+                                                    └────────────────────────────────┘
+    #+END_EXAMPLE
 
 * Benchmarks
 
@@ -697,41 +787,43 @@ regexp3: [[https://github.com/nasciiboy/RecursiveRegexpRaptor][here]]
   - [[http://sljit.sourceforge.net/pcre.html][PCRE2 10.10 with sljit JIT compiler support]]
 
 
-  vs the raptor (regexp4_ascii.c)
+  vs the raptor (regexp3_ascii.c)
 
 ** Results
-*** x86-64 bit Intel Cerelon 847 1.1GHz (GCC 6.2.1, GNU/Linux)
+*** x86-64 bit Intel Cerelon 847 1.1GHz (GCC 6.3.1, GNU/Linux)
 
     #+BEGIN_HTML
       <table class="results" border="1" width="100%">
       <tbody><tr><th>Regular expression</th><th>PCRE</th><th>PCRE<br>-DFA</th><th>TRE</th><th>Onig-<br>uruma</th><th>RE2</th><th>PCRE<br>-JIT</th><th class="raptor3">regexp3</th><th class="raptor4">regexp4</th></tr>
-      <tr><td class="pattern"><table><tr><td>.|\n</td></tr><tr><td class="raptor3-pattern">.</td></tr></table></td><td class="time">4416 ms (20045118)</td><td class="time">4982 ms (20045118)</td><td class="time">6639 ms (20045118)</td><td class="time">2156 ms (20045118)</td><td class="time">7306 ms (20045118)</td><td class="time">1075 ms (20045118)</td><td class="time">1803 ms (20045118)</td><td class="time">753 ms (20045118)</td></tr>
-      <tr><td class="pattern"><table><tr><td>\w</td></tr><tr><td class="raptor3-pattern">:w</td></tr></table></td><td class="time">2881 ms (14751878)</td><td class="time">2991 ms (14751878)</td><td class="time">4693 ms (14751878)</td><td class="time">2316 ms (14751878)</td><td class="time">5517 ms (14751878)</td><td class="time">945 ms (14751878)</td><td class="time">1885 ms (14750958)</td><td class="time">915 ms (14750958)</td></tr>
-      <tr><td class="pattern"><table><tr><td>\d</td></tr><tr><td class="raptor3-pattern">:d</td></tr></table></td><td class="time">67 ms (27084)</td><td class="time">67 ms (27084)</td><td class="time">1034 ms (27084)</td><td class="time">134 ms (27084)</td><td class="time">233 ms (27084)</td><td class="time">57 ms (27084)</td><td class="time">1769 ms (27084)</td><td class="time">585 ms (27084)</td></tr>
-      <tr><td class="pattern"><table><tr><td>\S</td></tr><tr><td class="raptor3-pattern">:S</td></tr></table></td><td class="time">3002 ms (15451664)</td><td class="time">3083 ms (15451664)</td><td class="time">4633 ms (15451664)</td><td class="time">1763 ms (15451664)</td><td class="time">5806 ms (15451664)</td><td class="time">887 ms (15451664)</td><td class="time">1908 ms (15451664)</td><td class="time">927 ms (15451664)</td></tr>
-      <tr><td class="pattern"><table><tr><td>[.\s]+</td></tr><tr><td class="raptor3-pattern">[:.:s]+</td></tr></table></td><td class="time">931 ms (3430783)</td><td class="time">1060 ms (3430783)</td><td class="time">1882 ms (991813)</td><td class="time">773 ms (3430783)</td><td class="time">1773 ms (3430783)</td><td class="time">380 ms (3430783)</td><td class="time">4051 ms (3430783)</td><td class="time">1377 ms (3430783)</td></tr>
-      <tr><td class="pattern"><table><tr><td>[\n.]+</td></tr><tr><td class="raptor3-pattern">[\n:.]+</td></tr></table></td><td class="time">187 ms (438367)</td><td class="time">232 ms (438367)</td><td class="time">1407 ms (438367)</td><td class="time">226 ms (438367)</td><td class="time">409 ms (438367)</td><td class="time">45 ms (438367)</td><td class="time">3726 ms (438367)</td><td class="time">1035 ms (438367)</td></tr>
-      <tr><td class="pattern"><table><tr><td>e</td></tr><tr><td class="raptor3-pattern">e</td></tr></table></td><td class="time">360 ms (1781425)</td><td class="time">426 ms (1781425)</td><td class="time">496 ms (1781425)</td><td class="time">437 ms (1781425)</td><td class="time">722 ms (1781425)</td><td class="time">134 ms (1781425)</td><td class="time">1795 ms (1781425)</td><td class="time">650 ms (1781425)</td></tr>
-      <tr><td class="pattern"><table><tr><td>(((((e)))))</td></tr><tr><td class="raptor3-pattern">&lt;&lt;&lt;&lt;&lt;e&gt;&gt;&gt;&gt;&gt;</td></tr></table></td><td class="time">1226 ms (1781425)</td><td class="time">1098 ms (1781425)</td><td class="time">490 ms (1781425)</td><td class="time">844 ms (1781425)</td><td class="time">723 ms (1781425)</td><td class="time">202 ms (1781425)</td><td class="time">26092 ms (1781425)</td><td class="time">3548 ms (1781425)</td></tr>
-      <tr><td class="pattern"><table><tr><td>((((((((((e))))))))))</td></tr><tr><td class="raptor3-pattern">&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;e&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</td></tr></table></td><td class="time">1907 ms (1781425)</td><td class="time">1741 ms (1781425)</td><td class="time">489 ms (1781425)</td><td class="time">1095 ms (1781425)</td><td class="time">726 ms (1781425)</td><td class="time">312 ms (1781425)</td><td class="time">82855 ms (1781425)</td><td class="time">5421 ms (1781425)</td></tr>
-      <tr><td class="pattern"><table><tr><td>Twain</td></tr><tr><td class="raptor3-pattern">Twain</td></tr></table></td><td class="time">10 ms (2388)</td><td class="time">47 ms (2388)</td><td class="time">987 ms (2388)</td><td class="time">52 ms (2388)</td><td class="time">8 ms (2388)</td><td class="time">50 ms (2388)</td><td class="time">2550 ms (2388)</td><td class="time">554 ms (2388)</td></tr>
-      <tr><td class="pattern"><table><tr><td>(Twain)</td></tr><tr><td class="raptor3-pattern">&lt;Twain&gt;</td></tr></table></td><td class="time">14 ms (2388)</td><td class="time">48 ms (2388)</td><td class="time">988 ms (2388)</td><td class="time">52 ms (2388)</td><td class="time">8 ms (2388)</td><td class="time">50 ms (2388)</td><td class="time">7145 ms (2388)</td><td class="time">940 ms (2388)</td></tr>
-      <tr><td class="pattern"><table><tr><td>(?i)Twain</td></tr><tr><td class="raptor3-pattern">#*Twain</td></tr></table></td><td class="time">198 ms (2657)</td><td class="time">285 ms (2657)</td><td class="time">1253 ms (2657)</td><td class="time">412 ms (2657)</td><td class="time">255 ms (2657)</td><td class="time">52 ms (2657)</td><td class="time">2638 ms (2657)</td><td class="time">697 ms (2657)</td></tr>
-      <tr><td class="pattern"><table><tr><td>((T|t)(w|W)(a|A)i([a-z]|1))</td></tr><tr><td class="raptor3-pattern">&lt;&lt;T|t&gt;&lt;w|W&gt;&lt;a|A&gt;i&lt;[a-z]|1&gt;&gt;</td></tr></table></td><td class="time">673 ms (2427)</td><td class="time">531 ms (2427)</td><td class="time">1928 ms (2427)</td><td class="time">358 ms (2427)</td><td class="time">254 ms (2427)</td><td class="time">68 ms (2427)</td><td class="time">24419 ms (2427)</td><td class="time">2393 ms (2427)</td></tr>
-      <tr><td class="pattern"><table><tr><td>[a-z]shing</td></tr><tr><td class="raptor3-pattern">[a-z]shing</td></tr></table></td><td class="time">1482 ms (1877)</td><td class="time">2309 ms (1877)</td><td class="time">1518 ms (1877)</td><td class="time">49 ms (1877)</td><td class="time">349 ms (1877)</td><td class="time">48 ms (1877)</td><td class="time">5341 ms (1877)</td><td class="time">1426 ms (1877)</td></tr>
-      <tr><td class="pattern"><table><tr><td>Huck[a-zA-Z]+|Saw[a-zA-Z]+</td></tr><tr><td class="raptor3-pattern">Huck[a-zA-Z]+|Saw[a-zA-Z]+</td></tr></table></td><td class="time">72 ms (396)</td><td class="time">77 ms (396)</td><td class="time">1540 ms (396)</td><td class="time">138 ms (396)</td><td class="time">224 ms (396)</td><td class="time">9 ms (396)</td><td class="time">6161 ms (396)</td><td class="time">1416 ms (396)</td></tr>
-      <tr><td class="pattern"><table><tr><td>[a-q][^u-z]{13}x</td></tr><tr><td class="raptor3-pattern">[a-q][^u-z]{13}x</td></tr></table></td><td class="time">1768 ms (4929)</td><td class="time">6307 ms (4929)</td><td class="time">4309 ms (4929)</td><td class="time">171 ms (4929)</td><td class="time">10119 ms (4929)</td><td class="time">5 ms (4929)</td><td class="time">11825 ms (4929)</td><td class="time">4299 ms (4929)</td></tr>
-      <tr><td class="pattern"><table><tr><td>Tom|Sawyer|Huckleberry|Finn</td></tr><tr><td class="raptor3-pattern">Tom|Sawyer|Huckleberry|Finn</td></tr></table></td><td class="time">97 ms (3015)</td><td class="time">103 ms (3015)</td><td class="time">2764 ms (3015)</td><td class="time">157 ms (3015)</td><td class="time">226 ms (3015)</td><td class="time">84 ms (3015)</td><td class="time">11291 ms (3015)</td><td class="time">2545 ms (3015)</td></tr>
-      <tr><td class="pattern"><table><tr><td>(Tom|Sawyer|Huckleberry|Finn)</td></tr><tr><td class="raptor3-pattern">&lt;Tom|Sawyer|Huckleberry|Finn&gt;</td></tr></table></td><td class="time">102 ms (3015)</td><td class="time">106 ms (3015)</td><td class="time">2754 ms (3015)</td><td class="time">158 ms (3015)</td><td class="time">227 ms (3015)</td><td class="time">82 ms (3015)</td><td class="time">26147 ms (3015)</td><td class="time">2928 ms (3015)</td></tr>
-      <tr><td class="pattern"><table><tr><td>[hHeELlLlOo][hHeELlLlOo][hHeELlLlOo][hHeELlLlOo][hHeELlLlOo]</td></tr><tr><td class="raptor3-pattern">[hHeELlLlOo][hHeELlLlOo][hHeELlLlOo][hHeELlLlOo][hHeELlLlOo]</td></tr></table></td><td class="time">619 ms (534)</td><td class="time">887 ms (534)</td><td class="time">3201 ms (534)</td><td class="time">676 ms (534)</td><td class="time">320 ms (534)</td><td class="time">240 ms (534)</td><td class="time">10955 ms (534)</td><td class="time">1662 ms (534)</td></tr>
-      <tr><td class="pattern"><table><tr><td>Tom.{10,25}river|river.{10,25}Tom</td></tr><tr><td class="raptor3-pattern">Tom([^(river|\n)]){10,25}river|river([^(Tom|\n)]){10,25}Tom</td></tr><tr><td class="raptor4-pattern">Tom(river|\n){10,25}#!river|river(Tom|\n){10,25}#!Tom</td></tr></table></td><td class="time">205 ms (2)</td><td class="time">257 ms (2)</td><td class="time">1749 ms (2)</td><td class="time">264 ms (2)</td><td class="time">244 ms (2)</td><td class="time">45 ms (2)</td><td class="time">13026 ms (2)</td><td class="time">1455 ms (2)</td></tr>
-      <tr><td class="pattern"><table><tr><td>ing[^a-zA-Z]</td></tr><tr><td class="raptor3-pattern">ing[^a-zA-Z]</td></tr></table></td><td class="time">136 ms (85956)</td><td class="time">234 ms (85956)</td><td class="time">1110 ms (85956)</td><td class="time">91 ms (85956)</td><td class="time">100 ms (85956)</td><td class="time">54 ms (85956)</td><td class="time">2846 ms (85956)</td><td class="time">600 ms (85956)</td></tr>
-      <tr><td class="pattern"><table><tr><td>[a-zA-Z]ing[^a-zA-Z]</td></tr><tr><td class="raptor3-pattern">[a-zA-Z]ing[^a-zA-Z]</td></tr></table></td><td class="time">1550 ms (85823)</td><td class="time">2371 ms (85823)</td><td class="time">1781 ms (85823)</td><td class="time">93 ms (85823)</td><td class="time">378 ms (85823)</td><td class="time">57 ms (85823)</td><td class="time">6105 ms (85823)</td><td class="time">1534 ms (85823)</td></tr>
-      <tr><td class="pattern"><table><tr><td>([a-zA-Z]+ing)</td></tr><tr><td class="raptor3-pattern">&lt;([^(ing|:A)])+ing(([^(ing|:A)])*ing)*&gt;</td></tr><tr><td class="raptor4-pattern">&lt;(ing|:A)+#!ing(((ing|:A)*#!ing)*&gt;</td></tr></table></td><td class="time">4105 ms (95863)</td><td class="time">5539 ms (95863)</td><td class="time">2044 ms (95863)</td><td class="time">2395 ms (95863)</td><td class="time">390 ms (95863)</td><td class="time">229 ms (95863)</td><td class="time">53525 ms (95863)</td><td class="time">6746 ms (95863)</td></tr>
-      <tr><td class="pattern"><table><tr><td>([A-Za-z]awyer|[A-Za-z]inn)\s</td></tr><tr><td class="raptor3-pattern">&lt;[A-Za-z]awyer|[A-Za-z]inn&gt;:s</td></tr></table></td><td class="time">3128 ms (313)</td><td class="time">3635 ms (313)</td><td class="time">2715 ms (313)</td><td class="time">550 ms (313)</td><td class="time">341 ms (313)</td><td class="time">105 ms (313)</td><td class="time">22344 ms (313)</td><td class="time">4088 ms (313)</td></tr>
+      <tr><td class="pattern"><table><tr><td>.|\n</td></tr><tr><td class="raptor3-pattern">.</td></tr></table></td><td class="time">4514 ms (20045118)</td><td class="time">5320 ms (20045118)</td><td class="time">6500 ms (20045118)</td><td class="time">13378 ms (20045118)</td><td class="time">10619 ms (20045118)</td><td class="time">1086 ms (20045118)</td><td class="time">1768 ms (20045118)</td><td class="time">748 ms (20045118)</td></tr>
+      <tr><td class="pattern"><table><tr><td>\w</td></tr><tr><td class="raptor3-pattern">:w</td></tr></table></td><td class="time">3893 ms (14751878)</td><td class="time">3026 ms (14751878)</td><td class="time">4604 ms (14751878)</td><td class="time">10947 ms (14751878)</td><td class="time">7967 ms (14751878)</td><td class="time">944 ms (14751878)</td><td class="time">1836 ms (14750958)</td><td class="time">941 ms (14750958)</td></tr>
+      <tr><td class="pattern"><table><tr><td>\d</td></tr><tr><td class="raptor3-pattern">:d</td></tr></table></td><td class="time">65 ms (27084)</td><td class="time">67 ms (27084)</td><td class="time">1036 ms (27084)</td><td class="time">150 ms (27084)</td><td class="time">153 ms (27084)</td><td class="time">57 ms (27084)</td><td class="time">1807 ms (27084)</td><td class="time">608 ms (27084)</td></tr>
+      <tr><td class="pattern"><table><tr><td>\S</td></tr><tr><td class="raptor3-pattern">:S</td></tr></table></td><td class="time">3023 ms (15451664)</td><td class="time">3130 ms (15451664)</td><td class="time">4533 ms (15451664)</td><td class="time">10776 ms (15451664)</td><td class="time">8273 ms (15451664)</td><td class="time">902 ms (15451664)</td><td class="time">1846 ms (15451664)</td><td class="time">958 ms (15451664)</td></tr>
+      <tr><td class="pattern"><table><tr><td>\S+</td></tr><tr><td class="raptor3-pattern">:S+</td></tr></table></td><td class="time">918 ms (3414592)</td><td class="time">1587 ms (3414592)</td><td class="time">2462 ms (3414592)</td><td class="time">3019 ms (3414592)</td><td class="time">2183 ms (3414592)</td><td class="time">320 ms (3414592)</td><td class="time">1078 ms (3414592)</td><td class="time">713 ms (3414592)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[a-zA-Z]+</td></tr><tr><td class="raptor3-pattern">[a-zA-Z]+</td></tr></table></td><td class="time">973 ms (3495761)</td><td class="time">1540 ms (3495761)</td><td class="time">2282 ms (3495761)</td><td class="time">2919 ms (3495761)</td><td class="time">2258 ms (3495761)</td><td class="time">333 ms (3495761)</td><td class="time">3301 ms (3495761)</td><td class="time">1134 ms (3495761)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[.\s]+</td></tr><tr><td class="raptor3-pattern">[:.:s]+</td></tr><tr><td class="raptor4-pattern">[.:s]+</td></tr></table></td><td class="time">915 ms (3430783)</td><td class="time">1047 ms (3430783)</td><td class="time">1888 ms (991813)</td><td class="time">2799 ms (3430783)</td><td class="time">2241 ms (3430783)</td><td class="time">379 ms (3430783)</td><td class="time">4203 ms (3430783)</td><td class="time">1395 ms (3430783)</td></tr>
+      <tr><td class="pattern"><table><tr><td>([^\n]+)</td></tr><tr><td class="raptor3-pattern">&lt;[^\n]+&gt;</td></tr></table></td><td class="time">308 ms (314387)</td><td class="time">1179 ms (314387)</td><td class="time">1504 ms (314387)</td><td class="time">741 ms (314387)</td><td class="time">477 ms (314387)</td><td class="time">88 ms (314387)</td><td class="time">1267 ms (314387)</td><td class="time">597 ms (314387)</td></tr>
+      <tr><td class="pattern"><table><tr><td>e</td></tr><tr><td class="raptor3-pattern">e</td></tr></table></td><td class="time">373 ms (1781425)</td><td class="time">453 ms (1781425)</td><td class="time">501 ms (1781425)</td><td class="time">1448 ms (1781425)</td><td class="time">1019 ms (1781425)</td><td class="time">135 ms (1781425)</td><td class="time">1757 ms (1781425)</td><td class="time">704 ms (1781425)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(((((e)))))</td></tr><tr><td class="raptor3-pattern">&lt;&lt;&lt;&lt;&lt;e&gt;&gt;&gt;&gt;&gt;</td></tr></table></td><td class="time">1289 ms (1781425)</td><td class="time">1153 ms (1781425)</td><td class="time">494 ms (1781425)</td><td class="time">1879 ms (1781425)</td><td class="time">1016 ms (1781425)</td><td class="time">210 ms (1781425)</td><td class="time">17686 ms (1781425)</td><td class="time">3485 ms (1781425)</td></tr>
+      <tr><td class="pattern"><table><tr><td>((((((((((e))))))))))</td></tr><tr><td class="raptor3-pattern">&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;e&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</td></tr></table></td><td class="time">2019 ms (1781425)</td><td class="time">1727 ms (1781425)</td><td class="time">494 ms (1781425)</td><td class="time">2121 ms (1781425)</td><td class="time">1037 ms (1781425)</td><td class="time">296 ms (1781425)</td><td class="time">48633 ms (1781425)</td><td class="time">5147 ms (1781425)</td></tr>
+      <tr><td class="pattern"><table><tr><td>Twain</td></tr><tr><td class="raptor3-pattern">Twain</td></tr></table></td><td class="time">10 ms (2388)</td><td class="time">49 ms (2388)</td><td class="time">993 ms (2388)</td><td class="time">54 ms (2388)</td><td class="time">8 ms (2388)</td><td class="time">50 ms (2388)</td><td class="time">2383 ms (2388)</td><td class="time">614 ms (2388)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(Twain)</td></tr><tr><td class="raptor3-pattern">&lt;Twain&gt;</td></tr></table></td><td class="time">14 ms (2388)</td><td class="time">49 ms (2388)</td><td class="time">987 ms (2388)</td><td class="time">54 ms (2388)</td><td class="time">8 ms (2388)</td><td class="time">50 ms (2388)</td><td class="time">5299 ms (2388)</td><td class="time">999 ms (2388)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(?i)Twain</td></tr><tr><td class="raptor3-pattern">#*Twain</td></tr></table></td><td class="time">192 ms (2657)</td><td class="time">287 ms (2657)</td><td class="time">1253 ms (2657)</td><td class="time">345 ms (2657)</td><td class="time">179 ms (2657)</td><td class="time">52 ms (2657)</td><td class="time">2512 ms (2657)</td><td class="time">781 ms (2657)</td></tr>
+      <tr><td class="pattern"><table><tr><td>((T|t)([wW])(a|A)i?I?([nN]))</td></tr><tr><td class="raptor3-pattern">&lt;&lt;T|t&gt;&lt;[wW]&gt;&lt;a|A&gt;i?I?&lt;[nN]&gt;&gt;</td></tr></table></td><td class="time">577 ms (2658)</td><td class="time">458 ms (2658)</td><td class="time">1750 ms (2658)</td><td class="time">361 ms (2658)</td><td class="time">179 ms (2658)</td><td class="time">76 ms (2658)</td><td class="time">17773 ms (2658)</td><td class="time">2565 ms (2658)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(T+([w]?(a{1}(i+(n*))))){1}</td></tr><tr><td class="raptor3-pattern">&lt;T+&lt;[w]?&lt;a{1}&lt;i+&lt;n*&gt;&gt;&gt;&gt;&gt;{1}</td></tr></table></td><td class="time">25 ms (2419)</td><td class="time">60 ms (2419)</td><td class="time">1175 ms (2419)</td><td class="time">164 ms (2419)</td><td class="time">8 ms (2419)</td><td class="time">7 ms (2419)</td><td class="time">12277 ms (2419)</td><td class="time">1025 ms (2419)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(?:T+(?:[w]?(?:a{1}(?:i+(?:n*))))){1}</td></tr><tr><td class="raptor3-pattern">(T+([w]?(a{1}(i+(n*))))){1}</td></tr></table></td><td class="time">22 ms (2419)</td><td class="time">60 ms (2419)</td><td class="time">1155 ms (2419)</td><td class="time">159 ms (2419)</td><td class="time">8 ms (2419)</td><td class="time">7 ms (2419)</td><td class="time">12149 ms (2419)</td><td class="time">943 ms (2419)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[a-z]shing</td></tr><tr><td class="raptor3-pattern">[a-z]shing</td></tr></table></td><td class="time">1456 ms (1877)</td><td class="time">2308 ms (1877)</td><td class="time">1559 ms (1877)</td><td class="time">50 ms (1877)</td><td class="time">290 ms (1877)</td><td class="time">48 ms (1877)</td><td class="time">5759 ms (1877)</td><td class="time">1319 ms (1877)</td></tr>
+      <tr><td class="pattern"><table><tr><td>Huck[a-zA-Z]+|Saw[a-zA-Z]+</td></tr><tr><td class="raptor3-pattern">Huck[a-zA-Z]+|Saw[a-zA-Z]+</td></tr></table></td><td class="time">72 ms (396)</td><td class="time">75 ms (396)</td><td class="time">1569 ms (396)</td><td class="time">139 ms (396)</td><td class="time">139 ms (396)</td><td class="time">8 ms (396)</td><td class="time">6612 ms (396)</td><td class="time">1554 ms (396)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[a-q][^u-z]{13}x</td></tr><tr><td class="raptor3-pattern">[a-q][^u-z]{13}x</td></tr></table></td><td class="time">1731 ms (4929)</td><td class="time">6363 ms (4929)</td><td class="time">4285 ms (4929)</td><td class="time">157 ms (4929)</td><td class="time">569 ms (4929)</td><td class="time">5 ms (4929)</td><td class="time">11654 ms (4929)</td><td class="time">3600 ms (4929)</td></tr>
+      <tr><td class="pattern"><table><tr><td>Tom|Sawyer|Huckleberry|Finn</td></tr><tr><td class="raptor3-pattern">Tom|Sawyer|Huckleberry|Finn</td></tr></table></td><td class="time">96 ms (3015)</td><td class="time">100 ms (3015)</td><td class="time">2749 ms (3015)</td><td class="time">161 ms (3015)</td><td class="time">143 ms (3015)</td><td class="time">84 ms (3015)</td><td class="time">10422 ms (3015)</td><td class="time">2803 ms (3015)</td></tr>
+      <tr><td class="pattern"><table><tr><td>(Tom|Sawyer|Huckleberry|Finn)</td></tr><tr><td class="raptor3-pattern">&lt;Tom|Sawyer|Huckleberry|Finn&gt;</td></tr></table></td><td class="time">101 ms (3015)</td><td class="time">103 ms (3015)</td><td class="time">2767 ms (3015)</td><td class="time">162 ms (3015)</td><td class="time">143 ms (3015)</td><td class="time">82 ms (3015)</td><td class="time">19118 ms (3015)</td><td class="time">3172 ms (3015)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[hHeELlOo][hHeELlOo][hHeELlOo][hHeELlOo][hHeELlOo]</td></tr><tr><td class="raptor3-pattern">[hHeELlOo][hHeELlOo][hHeELlOo][hHeELlOo][hHeELlOo]</td></tr></table></td><td class="time">631 ms (534)</td><td class="time">879 ms (534)</td><td class="time">2914 ms (534)</td><td class="time">690 ms (534)</td><td class="time">263 ms (534)</td><td class="time">241 ms (534)</td><td class="time">12257 ms (534)</td><td class="time">1586 ms (534)</td></tr>
+      <tr><td class="pattern"><table><tr><td>Tom.{10,25}river|river.{10,25}Tom</td></tr><tr><td class="raptor3-pattern">Tom([^(river|\n)]){10,25}river|river([^(Tom|\n)]){10,25}Tom</td></tr><tr><td class="raptor4-pattern">Tom(river|\n){10,25}#!river|river(Tom|\n){10,25}#!Tom</td></tr></table></td><td class="time">204 ms (2)</td><td class="time">248 ms (2)</td><td class="time">1762 ms (2)</td><td class="time">250 ms (2)</td><td class="time">238 ms (2)</td><td class="time">45 ms (2)</td><td class="time">12620 ms (2)</td><td class="time">1583 ms (2)</td></tr>
+      <tr><td class="pattern"><table><tr><td>ing[^a-zA-Z]</td></tr><tr><td class="raptor3-pattern">ing[^a-zA-Z]</td></tr></table></td><td class="time">140 ms (85956)</td><td class="time">242 ms (85956)</td><td class="time">1104 ms (85956)</td><td class="time">141 ms (85956)</td><td class="time">113 ms (85956)</td><td class="time">54 ms (85956)</td><td class="time">3159 ms (85956)</td><td class="time">657 ms (85956)</td></tr>
+      <tr><td class="pattern"><table><tr><td>[a-zA-Z]ing[^a-zA-Z]</td></tr><tr><td class="raptor3-pattern">[a-zA-Z]ing[^a-zA-Z]</td></tr></table></td><td class="time">1499 ms (85823)</td><td class="time">2383 ms (85823)</td><td class="time">1797 ms (85823)</td><td class="time">142 ms (85823)</td><td class="time">326 ms (85823)</td><td class="time">57 ms (85823)</td><td class="time">7701 ms (85823)</td><td class="time">1392 ms (85823)</td></tr>
+      <tr><td class="pattern"><table><tr><td>([a-zA-Z]+ing)</td></tr><tr><td class="raptor3-pattern">&lt;([^(ing|:A)])+ing(([^(ing|:A)])*ing)*&gt;</td></tr><tr><td class="raptor4-pattern">&lt;(ing|:A)+#!ing((ing|:A)*#!ing)*&gt;</td></tr></table></td><td class="time">4018 ms (95863)</td><td class="time">5394 ms (95863)</td><td class="time">2096 ms (95863)</td><td class="time">2513 ms (95863)</td><td class="time">344 ms (95863)</td><td class="time">222 ms (95863)</td><td class="time">51980 ms (95863)</td><td class="time">7888 ms (95863)</td></tr>
       </tbody></table>
     #+END_HTML
-
 
     The testing environment [[https://github.com/nasciiboy/RecursiveRegexpRaptor-vs-Benchmarks][here]] (The original testing environment by [[https://sourceforge.net/u/dark100/profile/][dark100]]
     can be downloaded from [[http://sljit.sourceforge.net/regex-test.tgz][here]]). Just Download, type =make= and run =runtest=.

@@ -15,107 +15,6 @@ int raptorTest(){
   int errs   = 0;
   int total  = 0;
 
-#define TRUE_TEST( text, re )                   \
-  result = regexp4( text, re );                 \
-  total++;                                      \
-  if( result == 0 ){                            \
-    printf( "%s:%d Error on TRUE TEST %s %s\n", \
-            __FILE__, __LINE__, text, re );     \
-    errs++;                                     \
-  }
-
-  TRUE_TEST( "ab", "a(b|c)|A(B|C)" );
-  TRUE_TEST( "ac", "a(b|c)|A(B|C)" );
-  TRUE_TEST( "AB", "a(b|c)|A(B|C)" );
-  TRUE_TEST( "AC", "a(b|c)|A(B|C)" );
-  TRUE_TEST( "ab", "a<b|c>|A<B|C>" );
-  TRUE_TEST( "ac", "a<b|c>|A<B|C>" );
-  TRUE_TEST( "AB", "a<b|c>|A<B|C>" );
-  TRUE_TEST( "AC", "a<b|c>|A<B|C>" );
-  TRUE_TEST( "ab"    , "(a(b|c)|A(B|C))|1234(ea|eb|ec)" );
-  TRUE_TEST( "ac"    , "(a(b|c)|A(B|C))|1234(ea|eb|ec)" );
-  TRUE_TEST( "AC"    , "(a(b|c)|A(B|C))|1234(ea|eb|ec)" );
-  TRUE_TEST( "ab"    , "<a<b|c>|A<B|C>>|1234<ea|eb|ec>" );
-  TRUE_TEST( "ac"    , "<a<b|c>|A<B|C>>|1234<ea|eb|ec>" );
-  TRUE_TEST( "AC"    , "<a<b|c>|A<B|C>>|1234<ea|eb|ec>" );
-  TRUE_TEST( "1234eb", "(a(b|c)|A(B|C))|1234(ea|eb|ec)" );
-  TRUE_TEST( "1234ec", "(a(b|c)|A(B|C))|1234(ea|eb|ec)" );
-  TRUE_TEST( "1234eb", "<a<b|c>|A<B|C>>|1234<ea|eb|ec>" );
-  TRUE_TEST( "1234ec", "<a<b|c>|A<B|C>>|1234<ea|eb|ec>" );
-  TRUE_TEST( "1234ec", "(a<b|c>|A<B|C>)|1234(ea|eb|ec)" );
-  TRUE_TEST( "1234eb", "<a(b|c)|A(B|C)>|1234(ea|eb|ec)" );
-  TRUE_TEST( "1234ec", "(a<b|c>|A(B|C))|1234<ea|eb|ec>" );
-  TRUE_TEST( "ace", "a(b|c)(d|e)|A(B|C)(D|E)" );
-  TRUE_TEST( "ABD", "a(b|c)(d|e)|A(B|C)(D|E)" );
-  TRUE_TEST( "ace", "a<b|c><d|e>|A<B|C><D|E>" );
-  TRUE_TEST( "ABD", "a<b|c><d|e>|A<B|C><D|E>" );
-
-  TRUE_TEST( "ABC", "#^A" );
-  TRUE_TEST( "ABC", "#^AB" );
-  TRUE_TEST( "ABC", "#^ABC" );
-  TRUE_TEST( "ABC", "#^(b|A)" );
-  TRUE_TEST( "ABC", "#^A(B|C)(B|C)" );
-  TRUE_TEST( "ABC", "#^(A(B|C))(B|C)" );
-  TRUE_TEST( "ABC", "#$C" );
-  TRUE_TEST( "ABC", "#$BC" );
-  TRUE_TEST( "ABC", "#$ABC" );
-  TRUE_TEST( "ABC", "#$(b|C)" );
-  TRUE_TEST( "ABC", "#$A(B|C)(B|C)" );
-  TRUE_TEST( "ABC", "#$(A(B|C))(B|C)" );
-  TRUE_TEST( "ABC", "#^$ABC" );
-  TRUE_TEST( "ABC", "#^$A(c|B)(b|C)" );
-  TRUE_TEST( "ABC", "#^$A(B|C)(B|C)" );
-  TRUE_TEST( "ABC", "#^$(A(B|C))(B|C)" );
-
-
-#define FALSE_TEST( text, re )                          \
-  result = regexp4( text, re );                         \
-  total++;                                              \
-  if( result ){                                         \
-    printf( "%s:%d Error on FALSE TEST %s %s\n",        \
-            __FILE__, __LINE__, text, re );             \
-    errs++;                                             \
-  }
-
-  FALSE_TEST( "ab", "" );
-  FALSE_TEST( "ab", "|" );
-  FALSE_TEST( "ab", "()" );
-  FALSE_TEST( "ab", "|()" );
-  FALSE_TEST( "ab", "()|" );
-  FALSE_TEST( "ab", "(|)" );
-  FALSE_TEST( "ab", "()|()" );
-  FALSE_TEST( "ab", "(|)|(|)" );
-  FALSE_TEST( "", "a" );
-  FALSE_TEST( "", "a|b" );
-  FALSE_TEST( "", "a(b)c" );
-  FALSE_TEST( "", "raptor|(test)" );
-  FALSE_TEST( "", "|()" );
-  FALSE_TEST( "", "()|" );
-  FALSE_TEST( "", "(|)" );
-  FALSE_TEST( "", "()|()" );
-  FALSE_TEST( "", "(|)|(|)" );
-  FALSE_TEST( "ax", "a(b|c)|A(B|C)" );
-  FALSE_TEST( "ax", "a(b|c)|A(B|C)" );
-  FALSE_TEST( "Ax", "a(b|c)|A(B|C)" );
-  FALSE_TEST( "Ax", "a(b|c)|A(B|C)" );
-
-  FALSE_TEST( "ABC", "#^E" );
-  FALSE_TEST( "ABC", "#^EB" );
-  FALSE_TEST( "ABC", "#^EBC" );
-  FALSE_TEST( "ABC", "#^(b|E)" );
-  FALSE_TEST( "ABC", "#^A(B|C)(B|E)" );
-  FALSE_TEST( "ABC", "#^(A(B|C))(B|E)" );
-  FALSE_TEST( "ABC", "#$E" );
-  FALSE_TEST( "ABC", "#$BE" );
-  FALSE_TEST( "ABC", "#$ABE" );
-  FALSE_TEST( "ABC", "#$(b|E)" );
-  FALSE_TEST( "ABC", "#$A(B|C)(B|E)" );
-  FALSE_TEST( "ABC", "#$(A(B|C))(B|E)" );
-  FALSE_TEST( "ABC", "#^$ABE" );
-  FALSE_TEST( "ABC", "#^$A(c|B)(b|E)" );
-  FALSE_TEST( "ABC", "#^$A(B|C)(B|E)" );
-  FALSE_TEST( "ABC", "#^$(A(B|C))(B|E)" );
-
 #define NTEST( text, re, n )                            \
   result = regexp4( text, re );                         \
   total++;                                              \
@@ -126,18 +25,101 @@ int raptorTest(){
     errs++;                                             \
   }
 
+  NTEST( "ab", "a(b|c)|A(B|C)", 1 );
+  NTEST( "ac", "a(b|c)|A(B|C)", 1 );
+  NTEST( "AB", "a(b|c)|A(B|C)", 1 );
+  NTEST( "AC", "a(b|c)|A(B|C)", 1 );
+  NTEST( "ab", "a<b|c>|A<B|C>", 1 );
+  NTEST( "ac", "a<b|c>|A<B|C>", 1 );
+  NTEST( "AB", "a<b|c>|A<B|C>", 1 );
+  NTEST( "AC", "a<b|c>|A<B|C>", 1 );
+  NTEST( "ab"    , "(a(b|c)|A(B|C))|1234(ea|eb|ec)", 1 );
+  NTEST( "ac"    , "(a(b|c)|A(B|C))|1234(ea|eb|ec)", 1 );
+  NTEST( "AC"    , "(a(b|c)|A(B|C))|1234(ea|eb|ec)", 1 );
+  NTEST( "ab"    , "<a<b|c>|A<B|C>>|1234<ea|eb|ec>", 1 );
+  NTEST( "ac"    , "<a<b|c>|A<B|C>>|1234<ea|eb|ec>", 1 );
+  NTEST( "AC"    , "<a<b|c>|A<B|C>>|1234<ea|eb|ec>", 1 );
+  NTEST( "1234eb", "(a(b|c)|A(B|C))|1234(ea|eb|ec)", 1 );
+  NTEST( "1234ec", "(a(b|c)|A(B|C))|1234(ea|eb|ec)", 1 );
+  NTEST( "1234eb", "<a<b|c>|A<B|C>>|1234<ea|eb|ec>", 1 );
+  NTEST( "1234ec", "<a<b|c>|A<B|C>>|1234<ea|eb|ec>", 1 );
+  NTEST( "1234ec", "(a<b|c>|A<B|C>)|1234(ea|eb|ec)", 1 );
+  NTEST( "1234eb", "<a(b|c)|A(B|C)>|1234(ea|eb|ec)", 1 );
+  NTEST( "1234ec", "(a<b|c>|A(B|C))|1234<ea|eb|ec>", 1 );
+  NTEST( "ace", "a(b|c)(d|e)|A(B|C)(D|E)", 1 );
+  NTEST( "ABD", "a(b|c)(d|e)|A(B|C)(D|E)", 1 );
+  NTEST( "ace", "a<b|c><d|e>|A<B|C><D|E>", 1 );
+  NTEST( "ABD", "a<b|c><d|e>|A<B|C><D|E>", 1 );
+
+  NTEST( "ABC", "#^A", 1 );
+  NTEST( "ABC", "#^AB", 1 );
+  NTEST( "ABC", "#^ABC", 1 );
+  NTEST( "ABC", "#^(b|A)", 1 );
+  NTEST( "ABC", "#^A(B|C)(B|C)", 1 );
+  NTEST( "ABC", "#^(A(B|C))(B|C)", 1 );
+  NTEST( "ABC", "#$C", 1 );
+  NTEST( "ABC", "#$BC", 1 );
+  NTEST( "ABC", "#$ABC", 1 );
+  NTEST( "ABC", "#$(b|C)", 1 );
+  NTEST( "ABC", "#$A(B|C)(B|C)", 1 );
+  NTEST( "ABC", "#$(A(B|C))(B|C)", 1 );
+  NTEST( "ABC", "#^$ABC", 1 );
+  NTEST( "ABC", "#^$A(c|B)(b|C)", 1 );
+  NTEST( "ABC", "#^$A(B|C)(B|C)", 1 );
+  NTEST( "ABC", "#^$(A(B|C))(B|C)", 1 );
+
+
+  NTEST( "ab", "", 0 );
+  // NTEST( "ab", "|", 0 );
+  // NTEST( "ab", "()", 0 );
+  // NTEST( "ab", "|()", 0 );
+  // NTEST( "ab", "()|", 0 );
+  // NTEST( "ab", "(|)", 0 );
+  // NTEST( "ab", "()|()", 0 );
+  // NTEST( "ab", "(|)|(|)", 0 );
+  NTEST( "", "a", 0 );
+  NTEST( "", "a|b", 0 );
+  NTEST( "", "a(b)c", 0 );
+  NTEST( "", "raptor|(test)", 0 );
+  // NTEST( "", "|()", 0 );
+  // NTEST( "", "()|", 0 );
+  // NTEST( "", "(|)", 0 );
+  // NTEST( "", "()|()", 0 );
+  // NTEST( "", "(|)|(|)", 0 );
+  NTEST( "ax", "a(b|c)|A(B|C)", 0 );
+  NTEST( "ax", "a(b|c)|A(B|C)", 0 );
+  NTEST( "Ax", "a(b|c)|A(B|C)", 0 );
+  NTEST( "Ax", "a(b|c)|A(B|C)", 0 );
+
+  NTEST( "ABC", "#^E", 0 );
+  NTEST( "ABC", "#^EB", 0 );
+  NTEST( "ABC", "#^EBC", 0 );
+  NTEST( "ABC", "#^(b|E)", 0 );
+  NTEST( "ABC", "#^A(B|C)(B|E)", 0 );
+  NTEST( "ABC", "#^(A(B|C))(B|E)", 0 );
+  NTEST( "ABC", "#$E", 0 );
+  NTEST( "ABC", "#$BE", 0 );
+  NTEST( "ABC", "#$ABE", 0 );
+  NTEST( "ABC", "#$(b|E)", 0 );
+  NTEST( "ABC", "#$A(B|C)(B|E)", 0 );
+  NTEST( "ABC", "#$(A(B|C))(B|E)", 0 );
+  NTEST( "ABC", "#^$ABE", 0 );
+  NTEST( "ABC", "#^$A(c|B)(b|E)", 0 );
+  NTEST( "ABC", "#^$A(B|C)(B|E)", 0 );
+  NTEST( "ABC", "#^$(A(B|C))(B|E)", 0 );
+
   NTEST( "",  "",  0 );
   NTEST( "", "a",  0 );
   NTEST( "a", "",  0 );
   NTEST( "a", "o", 0 );
   NTEST( "a", "a", 1 );
-  NTEST( "a", "()", 0 );
-  NTEST( "a", "()|", 0 );
-  NTEST( "a", "|()", 0 );
-  NTEST( "a", "(|)", 0 );
+  // NTEST( "a", "()", 0 );
+  // NTEST( "a", "()|", 0 );
+  // NTEST( "a", "|()", 0 );
+  // NTEST( "a", "(|)", 0 );
   NTEST( "aaa", "a", 3 );
   NTEST( "a", "aaa", 0 );
-  NTEST( "a", "a()a", 0 );
+  // NTEST( "a", "a()a", 0 );
   NTEST( "a aaa aaa", "aaa", 2 );
   NTEST( "Raptor Test", "a", 1 );
   NTEST( "Raptor Test", "t", 2 );
@@ -198,7 +180,6 @@ int raptorTest(){
   NTEST( "abababababababababababababababababababab", "a{001,000001}" , 20 );
   NTEST( "aaaaaaaaaaaaaaaaaaaa", "a{20}", 1 );
   NTEST( "abababababababababababababababababababab", "(a|b){1,1}" , 40 );
-
 
   NTEST( "abc", "<b>", 1 );
   NTEST( "abc", "a<b>", 1 );
@@ -467,7 +448,6 @@ int raptorTest(){
 
   NTEST( "aeiou", ":a", 5 );
 
-
   NTEST( "(((", ":(", 3 );
   NTEST( ")))", ":)", 3 );
   NTEST( "<<<", ":<", 3 );
@@ -543,83 +523,9 @@ int raptorTest(){
   NTEST( "abababababababababababababababababababab", "(.:a)" , 20 );
   NTEST( "abababababababababababababababababababab", "(.{5}:a{5})" , 4 );
 
-  NTEST( "",  "a-z",  0 );
-  NTEST( "a", "a-z",  1 );
-  NTEST( "a", "A-Z",  0 );
-  NTEST( "A", "A-Z",  1 );
-  NTEST( "1", "a-z",  0 );
-  NTEST( "1", "0-9",  1 );
-  NTEST( "a", "0-9",  0 );
-  NTEST( "A", "0-9",  0 );
-  NTEST( "aaa", "a-z", 3 );
-  NTEST( "a", "a-za-za-z", 0 );
-  NTEST( "a aaa aaa", "a-z", 7 );
-  NTEST( "a aaa aaa", "a-za-za-z", 2 );
-  NTEST( "a aaa aaa", "a-zaa", 2 );
-  NTEST( "a aaa aaa", "aaa-z", 2 );
-  NTEST( "Raptor Test", "A-Za", 1 );
-  NTEST( "Raptor Test", "a-zt", 2 );
-  NTEST( "Raptor Test", "a-zz", 0 );
-  NTEST( "Raptor Test", "aa-z", 1 );
-  NTEST( "Raptor Test", " A-Z", 1 );
-  NTEST( "Raptor Test", "za-z", 0 );
-  NTEST( "a", "a-z?", 1 );
-  NTEST( "a", "a-z+", 1 );
-  NTEST( "a", "a-z*", 1 );
-  NTEST( "a", "a-z{1}", 1 );
-  NTEST( "a aaa aaa", "a-z?", 9 );
-  NTEST( "a aaa aaa", "a-z+", 3 );
-  NTEST( "a aaa aaa", "a-z*", 5 );
-  NTEST( "a aaa aaa", "a-z{1}", 7 );
-  NTEST( "a", "aa-z?", 1 );
-  NTEST( "a", "aa-z+", 0 );
-  NTEST( "a", "aa-z*", 1 );
-  NTEST( "a", "aa-z{1}", 0 );
-  NTEST( "aeiou", "a|a-z", 5 );
-  NTEST( "aeiou", "a|a-z?", 5 );
-  NTEST( "aeiou", "a|a-z+", 2 );
-  NTEST( "aeiou", "a|a-z*", 2 );
-  NTEST( "aeiou", "a-z|a", 5 );
-  NTEST( "aeiou", "a-z?|a", 5 );
-  NTEST( "aeiou", "a-z+|a", 1 );
-  NTEST( "aeiou", "a-z*|a", 1);
-  NTEST( "aeiou", "(a|a-z)", 5 );
-  NTEST( "aeiou", "(a|a-z?)", 5 );
-  NTEST( "aeiou", "(a|a-z+)", 2 );
-  NTEST( "aeiou", "(a|a-z*)", 2 );
-  NTEST( "aeiou", "(a-z|a)", 5 );
-  NTEST( "aeiou", "(a-z?|a)", 5 );
-  NTEST( "aeiou", "(a-z+|a)", 1 );
-  NTEST( "aeiou", "(a-z*|a)", 1);
-  NTEST( "aeiou", "a|(a-z)", 5 );
-  NTEST( "aeiou", "a|(a-z?)", 5 );
-  NTEST( "aeiou", "a|(a-z+)", 2 );
-  NTEST( "aeiou", "a|(a-z*)", 2 );
-  NTEST( "aeiou", "(a-z)|a", 5 );
-  NTEST( "aeiou", "(a-z?)|a", 5 );
-  NTEST( "aeiou", "(a-z+)|a", 1 );
-  NTEST( "aeiou", "(a-z*)|a", 1);
-  NTEST( "aeiou", "a|(a-z)", 5 );
-  NTEST( "aeiou", "a|(a-z)?", 5 );
-  NTEST( "aeiou", "a|(a-z)+", 2 );
-  NTEST( "aeiou", "a|(a-z)*", 2 );
-  NTEST( "aeiou", "(a-z)|a", 5 );
-  NTEST( "aeiou", "(a-z)?|a", 5 );
-  NTEST( "aeiou", "(a-z)+|a", 1 );
-  NTEST( "aeiou", "(a-z)*|a", 1);
-  NTEST( "1a2a3a4a5a6a", "1-6a", 6 );
-  NTEST( "1a2a3a4a5a6a", "1-3a", 3 );
-  NTEST( "1a2b3c4d5e6f", "1-6a-z", 6 );
-  NTEST( "1a2b3c4d5e6f", "1-3a-z", 3 );
-  NTEST( "abababababababababababababababababababab", "(aa-z)" , 20 );
-  NTEST( "abababababababababababababababababababab", "(a-za)" , 19 );
-  NTEST( "abababababababababababababababababababab", "(:aa-z)" , 20 );
-  NTEST( "abababababababababababababababababababab", "(a-z:a)" , 20 );
-  NTEST( "abababababababababababababababababababab", "(a-z{5}:a{5})" , 4 );
-
   NTEST( "",  "[a]",  0 );
   NTEST( "a", "[a]",  1 );
-  NTEST( "a", "[.]",  1 );
+  NTEST( "a", "[.]",  0 );
   NTEST( ".", "[.]",  1 );
   NTEST( "a", "[A]",  0 );
   NTEST( "A", "[A]",  1 );
@@ -628,6 +534,7 @@ int raptorTest(){
   NTEST( "a", "[:a]", 1 );
   NTEST( "A", "[:D]", 1 );
   NTEST( "aaa", "[a-z]", 3 );
+  NTEST( "...", "[.]",  3 );
   NTEST( "a", "[a-z][a-z][a-z]", 0 );
   NTEST( "a aaa aaa", "[a-z]", 7 );
   NTEST( "a aaa aaa", "[ a-z]", 9 );
@@ -648,6 +555,9 @@ int raptorTest(){
   NTEST( "a aaa aaa", "[a-z]+", 3 );
   NTEST( "a aaa aaa", "[a-z]*", 5 );
   NTEST( "a aaa aaa", "[a-z]{1}", 7 );
+  NTEST( "....", "[.]{1}", 4 );
+  NTEST( ".{4}", "[.{4}]{1}", 4 );
+  NTEST( "}.{4", "[.{4}]{1}", 4 );
   NTEST( "a", "a[a-z]?", 1 );
   NTEST( "a", "a[a-z]+", 0 );
   NTEST( "a", "a[a-z]*", 1 );
@@ -696,6 +606,8 @@ int raptorTest(){
   NTEST( "abababababababababababababababababababab", "([ab]:a)" , 20 );
   NTEST( "abababababababababababababababababababab", "([ab]{5}:a{5})" , 4 );
   NTEST( "()<>[]{}*?+", "[:(:):<:>:[:]:{:}:*:?:+]", 11 );
+  NTEST( "()<>[]|{}*#@?+", "[()<>:[:]|{}*?+#@]", 14 );
+
   NTEST( ")>}", "[)>}]", 3 );
 
   NTEST( "",  "[^a]",  0 );
@@ -844,9 +756,7 @@ int raptorTest(){
   NTEST( "aeiou", "([^ ])+|a", 1 );
   NTEST( "aeiou", "([^ ])*|a", 1);
   NTEST( "1a2a3a4a5a6a", ":a#!a", 6 );
-  NTEST( "1a2a3a4a5a6a", "4-6#!a", 3 );
   NTEST( "1a2b3c4d5e6f", ":a#!:d#!", 6 );
-  NTEST( "1a2b3c4d5e6f", "4-6#!:d#!", 3 );
   NTEST( "abababababababababababababababababababab", "(aa#!)" , 20 );
   NTEST( "abababababababababababababababababababab", "(a#!a)" , 19 );
   NTEST( "abababababababababababababababababababab", "(:aa#!)" , 20 );
@@ -980,8 +890,6 @@ int raptorTest(){
   NTEST( "a", "#*(a)", 1 );
   NTEST( "a", "#*[A]", 1 );
   NTEST( "a", "#*[a]", 1 );
-  NTEST( "a", "#*A-Z", 1 );
-  NTEST( "a", "A-Z#*", 1 );
   NTEST( "a", "(a)#*", 1 );
   NTEST( "a", "(A)#*", 1 );
   NTEST( "a", "[a]#*", 1 );
@@ -997,8 +905,6 @@ int raptorTest(){
   NTEST( "aAaA", "#*(a)", 4 );
   NTEST( "aAaA", "#*[A]", 4 );
   NTEST( "aAaA", "#*[a]", 4 );
-  NTEST( "aAaA", "#*A-Z", 4 );
-  NTEST( "aAaA", "A-Z#*", 4 );
   NTEST( "aAaA", "(a)#*", 4 );
   NTEST( "aAaA", "(A)#*", 4 );
   NTEST( "aAaA", "[a]#*", 4 );
@@ -1029,7 +935,7 @@ int raptorTest(){
   NTEST( "Raptor TesT Fest", "#*rapTor (tESt) fEST", 1 );
   NTEST( "Raptor TesT Fest", "(RapTor)#* (tESt)#* (fEST)#*", 1 );
   NTEST( "Raptor TesT Fest", "((Rap#*Tor)#* (t#*ESt)#* (fEST)#*)#*", 1 );
-  NTEST( "Raptor TesT Fest", "#*a-z#*apTor (tESt) A-Z#*EST", 1 );
+  NTEST( "Raptor TesT Fest", "#*[a-z]#*apTor (tESt) [A-Z]#*EST", 1 );
 
   NTEST( "a", "a#/", 1 );
   NTEST( "a", "A#/", 0 );
@@ -1056,8 +962,6 @@ int raptorTest(){
   NTEST( "aAaA", "#/(a)", 2 );
   NTEST( "aAaA", "#/[A]", 2 );
   NTEST( "aAaA", "#/[a]", 2 );
-  NTEST( "aAaA", "#/A-Z", 2 );
-  NTEST( "aAaA", "A-Z#/", 2 );
   NTEST( "aAaA", "(a)#/", 2 );
   NTEST( "aAaA", "(A)#/", 2 );
   NTEST( "aAaA", "[a]#/", 2 );
@@ -1081,7 +985,6 @@ int raptorTest(){
   NTEST( "Raptor tESt Fest", "#*rapTor (tESt)#/ fEST", 1 );
   NTEST( "Raptor TesT Fest", "#*rapTor (tE#/S#/t)#* fEST", 0 );
   NTEST( "Raptor tESt Fest", "#*rapTor (tE#/S#/t)#* fEST", 1 );
-
 
 
   char str[1024];
@@ -1331,15 +1234,15 @@ int raptorTest(){
   PUT_TEST( "make a new Line", "#^<[^n]+>", "#1raptor", "make a raptor" );
   PUT_TEST( "07-07-1777", "<0?[1-9]|[12][0-9]|3[01]>[/:-\\]<0?[1-9]|1[012]>[/:-\\]<[12][0-9]{3}>", "d:#1 m:#2 y:#3", "d:07 m:07 y:1777" );
   PUT_TEST( "fecha: 07-07-1777", "<0?[1-9]|[12][0-9]|3[01]>[/:-\\]<0?[1-9]|1[012]>[/:-\\]<[12][0-9]{3}>", "d:#1 m:#2 y:#3", "d:07 m:07 y:1777" );
-  FALSE_TEST( "31-13-1331", "<0?[1-9]|[12][0-9]|3[01]>[/:-\\]<0?[1-9]|1[012]>[/:-\\]<[12][0-9]{3}>" );
-  FALSE_TEST( "71-17-1177", "<0?[1-9]|[12][0-9]|3[01]>[/:-\\]<0?[1-9]|1[012]>[/:-\\]<[12][0-9]{3}>" );
+  NTEST( "31-13-1331", "<0?[1-9]|[12][0-9]|3[01]>[/:-\\]<0?[1-9]|1[012]>[/:-\\]<[12][0-9]{3}>", 0 );
+  NTEST( "71-17-1177", "<0?[1-9]|[12][0-9]|3[01]>[/:-\\]<0?[1-9]|1[012]>[/:-\\]<[12][0-9]{3}>", 0 );
   PUT_TEST( "07-07-1777", "<0?[1-9]|[12][0-9]|3[01]><[/:-\\]><0?[1-9]|1[012]>@2<[12][0-9]{3}>", "d:#1 m:#3 y:#4", "d:07 m:07 y:1777" );
   PUT_TEST( "fecha: 07-07-1777", "<0?[1-9]|[12][0-9]|3[01]><[/:-\\]><0?[1-9]|1[012]>@2<[12][0-9]{3}>", "d:#1 m:#3 y:#4", "d:07 m:07 y:1777" );
-  FALSE_TEST( "31/13-1331", "<0?[1-9]|[12][0-9]|3[01]><[/:-\\]><0?[1-9]|1[012]>@2<[12][0-9]{3}>" );
-  FALSE_TEST( "71-17/1177", "<0?[1-9]|[12][0-9]|3[01]><[/:-\\]><0?[1-9]|1[012]>@2<[12][0-9]{3}>" );
-  PUT_TEST( "nasciiboy@gmail.com", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><(:.[A-Za-z0-9]{2})*", "[#1][#2][#3]", "[nasciiboy][gmail][com]" );
-  PUT_TEST( "<mail>nasciiboy@gmail.com</mail>", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><(:.[A-Za-z0-9]{2})*", "[#1][#2][#3]", "[nasciiboy][gmail][com]" );
-  PUT_TEST( "u.s.r_43@ru.com.jp", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><(:.[A-Za-z0-9]{2})*", "[#1][#2][#3]", "[u.s.r_43][ru][com]" );
+  NTEST( "31/13-1331", "<0?[1-9]|[12][0-9]|3[01]><[/:-\\]><0?[1-9]|1[012]>@2<[12][0-9]{3}>", 0 );
+  NTEST( "71-17/1177", "<0?[1-9]|[12][0-9]|3[01]><[/:-\\]><0?[1-9]|1[012]>@2<[12][0-9]{3}>", 0 );
+  PUT_TEST( "nasciiboy@gmail.com", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><:.[A-Za-z0-9]{2}>*", "[#1][#2][#3]", "[nasciiboy][gmail][com]" );
+  PUT_TEST( "<mail>nasciiboy@gmail.com</mail>", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><:.[A-Za-z0-9]{2}>*", "[#1][#2][#3]", "[nasciiboy][gmail][com]" );
+  PUT_TEST( "u.s.r_43@ru.com.jp", "<[_A-Za-z0-9:-]+(:.[_A-Za-z0-9:-]+)*>:@<[A-Za-z0-9]+>:.<[A-Za-z0-9]+><:.[A-Za-z0-9]{2}>*", "[#1][#2][#3]", "[u.s.r_43][ru][com]" );
   PUT_TEST( "https://en.wikipedia.org/wiki/Regular_expression", "(https?|ftp):://<[^:s/:<:>]+></[^:s:.:<:>,/]+>*<.>*", "[#1][#2][#3]", "[en.wikipedia.org][/wiki/Regular_expression][]" );
   PUT_TEST( "https://en.wikipedia.org/wiki/Regular_expression.test", "(https?|ftp):://<[^:s/:<:>]+></[^:s:.:<:>,/]+>*<.>*", "[#1][#2][#3]", "[en.wikipedia.org][/wiki/Regular_expression][.test]" );
   PUT_TEST( "https://en.wikipedia.org/wiki/Regular_expression,test", "(https?|ftp):://<[^:s/:<:>]+></[^:s:.:<:>,/]+>*<.>*", "[#1][#2][#3]", "[en.wikipedia.org][/wiki/Regular_expression][,test]" );
@@ -1366,6 +1269,7 @@ int raptorTest(){
   PUT_TEST( "aa0123aa", "<aa><aa|(B|C)B>*#!<aa|(B|C)B>", "[#1][#2][#3]", "[aa][0123][aa]" );
   PUT_TEST( "aa0123BB", "<aa><aa|(B|C)B>*#!<aa|(B|C)B>", "[#1][#2][#3]", "[aa][0123][BB]" );
   PUT_TEST( "aa0123CB", "<aa><aa|(B|C)B>*#!<aa|(B|C)B>", "[#1][#2][#3]", "[aa][0123][CB]" );
+
 
   printf( "TEST %d *** ERRS %d\n\n", total, errs );
   return !errs;

@@ -16,7 +16,7 @@
 #define MOD_NEGATIVE      128
 
 struct CATch {
-  char *ptr[ MAX_CATCHS ];
+  const char *ptr[ MAX_CATCHS ];
   int   len[ MAX_CATCHS ];
   int   id [ MAX_CATCHS ];
   int   idx;
@@ -24,23 +24,23 @@ struct CATch {
 } static Catch;
 
 struct TEXT {
-  char *ptr;
+  const char *ptr;
   int   pos;
   int   len;
 } static text;
 
-enum RE_TYPE { PATH, GROUP, HOOK, BRACKET, BACKREF, META, RANGEAB, UTF8, POINT, SIMPLE };
+enum RE_TYPE { PATH, GROUP, HOOK, SET, BACKREF, META, RANGEAB, UTF8, POINT, SIMPLE };
 
 struct RE {
-  char           *ptr;
-  int      len, index;
+  const    char    *ptr;
+  unsigned int      len, index;
   enum     RE_TYPE  type;
   unsigned char     mods;
   unsigned int      loopsMin, loopsMax;
 };
 
 enum COMMAND { COM_PATH_INI, COM_PATH_ELE, COM_PATH_END, COM_GROUP_INI, COM_GROUP_END,
-               COM_HOOK_INI, COM_HOOK_END, COM_BRACKET_INI, COM_BRACKET_END,
+               COM_HOOK_INI, COM_HOOK_END, COM_SET_INI, COM_SET_END,
                COM_BACKREF, COM_META, COM_RANGEAB, COM_UTF8, COM_POINT, COM_SIMPLE, COM_END };
 
 struct TABLE {
@@ -52,23 +52,45 @@ struct TABLE {
 int table_index;
 int global_mods;
 
-static void tableAppend  ( struct RE *rexp, enum COMMAND command );
-static void tableClose   ( int index );
+static void tableAppend ( struct RE *rexp, enum COMMAND command );
+static void tableClose  ( const int index );
 
-static void path         ( struct RE  rexp );
-static void busterPath   ( struct RE *rexp );
-static int  isPath       ( struct RE *rexp );
-static void bracket      ( struct RE *rexp );
-static int  tracker      ( struct RE *rexp, struct RE *track );
-static void trackByLen   ( struct RE *rexp, struct RE *track, int len, int type );
-static int  trackByType  ( struct RE *rexp, struct RE *track, int type );
-static void getMods      ( struct RE *rexp, struct RE *track );
-static void getLoops     ( struct RE *rexp, struct RE *track );
-static void fwrTrack     ( struct RE *track, int len );
-static int  walkMeta     ( char *str );
-static int  walkBracket  ( char *str );
+static void genPaths    ( struct RE  rexp );
+static void genTracks   ( struct RE *rexp );
+static void genSet      ( struct RE *rexp );
+static int  isPath      ( struct RE *rexp );
+static int  tracker     ( struct RE *rexp, struct RE *track );
+static int  trackerSet  ( struct RE *rexp, struct RE *track );
 
-void compile( char *re ){
+static int  cutPath     ( struct RE *rexp, struct RE *track );
+static void cutSimple   ( struct RE *rexp, struct RE *track );
+static void cutPair     ( struct RE *rexp, struct RE *track, const int type );
+static void cutByLen    ( struct RE *rexp, struct RE *track, const int len, const int type );
+static void cutRexp     ( struct RE *rexp, const  int len );
+
+static void getMods     ( struct RE *rexp, struct RE *track );
+static void getLoops    ( struct RE *rexp, struct RE *track );
+
+static int  walkMeta    ( const char *str, const  int len );
+static int  walkPair    ( const char *str, const  int len, const char p[2] );
+
+static const unsigned char xooooooo = 0x80; // instead `isUTF8( c )` use `c & xooooooo`
+
+static int utf8meter( const char *str ){
+  static unsigned char xxoooooo = 0xC0;
+  unsigned char i, utfOrNo = *str;
+
+  if( utfOrNo & xooooooo ){
+    for ( i = 1, utfOrNo <<= 1; utfOrNo & xooooooo; i++, utfOrNo <<= 1 )
+      if( (str[ i ] & xxoooooo) != xooooooo ) return 1;
+
+    if( i >= 2 && i <= 8 ) return i;
+  }
+
+  return *str ? 1 : 0;
+}
+
+void compile( const char *re ){
   struct RE    rexp;
   rexp.ptr     = re;
   rexp.type    = PATH;
@@ -80,8 +102,8 @@ void compile( char *re ){
   getMods( &rexp, &rexp );
   global_mods = rexp.mods;
 
-  if( isPath( &rexp ) ) path(  rexp );
-  else            busterPath( &rexp );
+  if( isPath( &rexp ) ) genPaths (  rexp );
+  else                  genTracks( &rexp );
 
   tableAppend( NIL, COM_END );
 }
@@ -92,21 +114,23 @@ static void tableAppend( struct RE *rexp, enum COMMAND command ){
 
   if( rexp ) {
     rexp->index = table_index;
-    table[ table_index++ ].re = *rexp;
-  } else table_index++;
+    table[ table_index ].re = *rexp;
+  }
+
+  table_index++;
 }
 
-static void tableClose( int index ){
+static void tableClose( const int index ){
   table[ index ].close = table_index;
 }
 
-static void path( struct RE rexp ){
+static void genPaths( struct RE rexp ){
   struct RE track;
   tableAppend( &rexp, COM_PATH_INI );
 
-  while( trackByType( &rexp, &track, PATH ) ){
+  while( cutPath( &rexp, &track ) ){
     tableAppend( &track,  COM_PATH_ELE );
-    busterPath( &track );
+    genTracks( &track );
     tableClose( track.index );
   }
 
@@ -114,44 +138,40 @@ static void path( struct RE rexp ){
   tableAppend( NIL, COM_PATH_END );
 }
 
-static void busterPath( struct RE *rexp ){
+static void genTracks( struct RE *rexp ){
   struct RE track;
   while( tracker( rexp, &track ) )
     switch( track.type ){
     case HOOK   :
       tableAppend( &track, COM_HOOK_INI  );
-      if( isPath( &track ) ) path( track );
-      else                   busterPath( &track );
+      if( isPath( &track ) ) genPaths (  track );
+      else                   genTracks( &track );
       tableClose( track.index );
       tableAppend(    NIL, COM_HOOK_END  ); break;
     case GROUP  :
       tableAppend( &track, COM_GROUP_INI );
-      if( isPath( &track ) ) path( track );
-      else                   busterPath( &track );
+      if( isPath( &track ) ) genPaths (  track );
+      else                   genTracks( &track );
       tableClose( track.index );
       tableAppend(    NIL, COM_GROUP_END ); break;
     case PATH   :                           break;
-    case BRACKET: bracket    ( &track );    break;
+    case SET    : genSet     ( &track );    break;
     case BACKREF: tableAppend( &track, COM_BACKREF ); break;
     case META   : tableAppend( &track, COM_META    ); break;
-    case RANGEAB: tableAppend( &track, COM_RANGEAB ); break;
     case UTF8   : tableAppend( &track, COM_UTF8    ); break;
     case POINT  : tableAppend( &track, COM_POINT   ); break;
-    case SIMPLE : tableAppend( &track, COM_SIMPLE  ); break;
+    default     : tableAppend( &track, COM_SIMPLE  ); break;
     }
 }
 
 static int isPath( struct RE *rexp ){
-  for( int i = 0, deep = 0; i < rexp->len; i++ ){
-    i += walkMeta( rexp->ptr + i );
-
+  for( int i = 0; (i += walkMeta( rexp->ptr + i, rexp->len - i )) < rexp->len; i++ )
     switch( rexp->ptr[i] ){
-    case '<': case '(': deep++; break;
-    case '>': case ')': deep--; break;
-    case '[': i += walkBracket( rexp->ptr + i ); break;
-    case '|': if( deep == 0 ) return TRUE;
+    case '<': i += walkPair( rexp->ptr + i, rexp->len - i, "<>" ); break;
+    case '(': i += walkPair( rexp->ptr + i, rexp->len - i, "()" ); break;
+    case '[': i += walkPair( rexp->ptr + i, rexp->len - i, "[]" ); break;
+    case '|': return TRUE;
     }
-  }
 
   return FALSE;
 }
@@ -160,94 +180,98 @@ static int tracker( struct RE *rexp, struct RE *track ){
   if( rexp->len == 0 ) return FALSE;
 
   switch( *rexp->ptr & xooooooo ? UTF8 : *rexp->ptr ){
-  case ':' : trackByLen ( rexp, track, 2,                    META    ); break;
-  case '.' : trackByLen ( rexp, track, 1,                    POINT   ); break;
-  case '@' : trackByLen ( rexp, track, 1 +
-                                      countCharDigits( rexp->ptr + 1 ),
-                                                             BACKREF ); break;
-  case '(' : trackByType( rexp, track,                       GROUP   ); break;
-  case '<' : trackByType( rexp, track,                       HOOK    ); break;
-  case '[' : trackByType( rexp, track,                       BRACKET ); break;
-  case UTF8: trackByLen ( rexp, track, utf8meter(rexp->ptr), UTF8    ); break;
-  default :
-   for( int i = 1; i < rexp->len; i++ )
-     switch( rexp->ptr[ i ] & xooooooo ? UTF8 : rexp->ptr[ i ] ){
-     default: trackByLen( rexp, track, i, SIMPLE  ); goto getLM;
-     case '?': case '+': case '*': case '{': case '-': case '#':
-       if( i == 1 ){
-         if( rexp->ptr[ i ] == '-' ) trackByLen( rexp, track, 3, RANGEAB );
-         else                        trackByLen( rexp, track, 1, SIMPLE  );
-       } else trackByLen( rexp, track, i - 1, SIMPLE  );
-       goto getLM;
-     }
-
-   trackByLen( rexp, track, rexp->len, SIMPLE  );
+  case ':' : cutByLen ( rexp, track, 2,                    META    ); break;
+  case '.' : cutByLen ( rexp, track, 1,                    POINT   ); break;
+  case '@' : cutByLen ( rexp, track, 1 +
+                                    countCharDigits( rexp->ptr + 1 ),
+                                                           BACKREF ); break;
+  case '(' : cutPair  ( rexp, track,                       GROUP   ); break;
+  case '<' : cutPair  ( rexp, track,                       HOOK    ); break;
+  case '[' : cutPair  ( rexp, track,                       SET     ); break;
+  case UTF8: cutByLen ( rexp, track, utf8meter(rexp->ptr), UTF8    ); break;
+  default  : cutSimple( rexp, track                                ); break;
   }
 
- getLM:
   getLoops( rexp, track );
   getMods ( rexp, track );
   return TRUE;
 }
 
-static void trackByLen( struct RE *rexp, struct RE *track, int len, int type ){
+static void cutSimple( struct RE *rexp, struct RE *track ){
+  for( int i = 1; i < rexp->len; i++ )
+    switch( rexp->ptr[ i ] & xooooooo ? UTF8 : rexp->ptr[ i ] ){
+    case '(': case '<': case '[': case '@': case ':': case '.': case UTF8:
+      cutByLen( rexp, track, i, SIMPLE  ); return;
+    case '?': case '+': case '*': case '{': case '#':
+      if( i == 1 ) cutByLen( rexp, track,     1, SIMPLE );
+      else         cutByLen( rexp, track, i - 1, SIMPLE );
+      return;
+    }
+
+  cutByLen( rexp, track, rexp->len, SIMPLE  );
+}
+
+static void cutByLen( struct RE *rexp, struct RE *track, const int len, const int type ){
   *track       = *rexp;
   track->type  = type;
   track->len   = len;
-  fwrTrack( rexp, len );
+  cutRexp( rexp, len );
 }
 
-static int trackByType( struct RE *rexp, struct RE *track, int type ){
+static int cutPath( struct RE *rexp, struct RE *track ){
   if( rexp->len == 0 ) return FALSE;
 
   *track      = *rexp;
-  track->type = type;
-  if( type != PATH ) fwrTrack( track, 1 );
+  track->type = PATH;
 
-  for( int cut, i = 0, deep = 0; i < rexp->len; i++ ){
-    i += walkMeta( rexp->ptr + i );
-
+  for( int i = 0; (i += walkMeta( rexp->ptr + i, rexp->len - i )) < rexp->len; i++ )
     switch( rexp->ptr[i] ){
-    case '<': case '(': deep++; break;
-    case '>': case ')': deep--; break;
-    case '[': i += walkBracket( rexp->ptr + i ); break;
-    }
-
-    switch( type ){
-    case HOOK    : cut = deep == 0; break;
-    case GROUP   : cut = deep == 0; break;
-    case BRACKET : cut =              rexp->ptr[i] == ']'; break;
-    case PATH    : cut = deep == 0 && rexp->ptr[i] == '|'; break;
-    }
-
-    if( cut ){
-      track->len  = &rexp->ptr[i] - track->ptr;
-      fwrTrack( rexp, i + 1 );
+    case '<': i += walkPair( rexp->ptr + i, rexp->len - i, "<>" ); break;
+    case '(': i += walkPair( rexp->ptr + i, rexp->len - i, "()" ); break;
+    case '[': i += walkPair( rexp->ptr + i, rexp->len - i, "[]" ); break;
+    case '|':
+      track->len = i;
+      cutRexp( rexp, i + 1 );
       return TRUE;
     }
-  }
 
-  fwrTrack( rexp, rexp->len );
+  cutRexp( rexp, rexp->len );
   return TRUE;
 }
 
-static int walkBracket( char *str ){
-  int i = 0;
-  while( TRUE )
-    switch( str[ i ] ){
-    case ']': return i;
-    case ':': i += 2; break;
-    default : i++   ; break;
-    }
+static void cutPair( struct RE *rexp, struct RE *track, const int type ){
+  *track       = *rexp;
+  track->type  = type;
+
+  switch( type ){
+  case HOOK : track->len = walkPair( rexp->ptr, rexp->len, "<>" ); break;
+  case GROUP: track->len = walkPair( rexp->ptr, rexp->len, "()" ); break;
+  case SET  : track->len = walkPair( rexp->ptr, rexp->len, "[]" ); break;
+  }
+
+  cutRexp( track, 1 );
+  cutRexp( rexp, track->len + 2 );
 }
 
-static int walkMeta( char *str ){
-  for( int i = 0; ; i += 2 )
+static void cutRexp( struct RE *rexp, const int len ){
+  rexp->ptr += len; rexp->len -= len;
+}
+
+static int walkPair( const char *rexp, const int len, const char p[2] ){
+  for( int i = 0, deep = 0; (i += walkMeta( rexp + i, len + i )) < len; i++ ){
+    if( rexp[i] == p[0] ) deep++;
+    if( rexp[i] == p[1] ) deep--;
+    if( deep == 0 ) return i;
+  }
+
+  return len;
+}
+
+static int walkMeta( const char *str, const int len ){
+  for( int i = 0; i < len; i += 2 )
     if( str[i] != ':' ) return i;
-}
 
-static void fwrTrack( struct RE *track, int len ){
-  track->ptr += len; track->len -= len;
+  return len;
 }
 
 static void getMods( struct RE *rexp, struct RE *track ){
@@ -266,73 +290,100 @@ static void getMods( struct RE *rexp, struct RE *track ){
     default : inMods       =  FALSE         ; break;
     }
 
-  fwrTrack( rexp, pos );
+  cutRexp( rexp, pos );
 }
 
 static void getLoops( struct RE *rexp, struct RE *track ){
   track->loopsMin = 1; track->loopsMax = 1;
-  int len = 0;
 
   if( rexp->len )
     switch( *rexp->ptr ){
-    case '?' : len = 1; track->loopsMin = 0; track->loopsMax =   1; break;
-    case '+' : len = 1; track->loopsMin = 1; track->loopsMax = INF; break;
-    case '*' : len = 1; track->loopsMin = 0; track->loopsMax = INF; break;
-    case '{' :
-      track->loopsMin = aToi( rexp->ptr + 1 ) ;
-      if( rexp->ptr[ 1 + countCharDigits( rexp->ptr + 1 ) ] == ',' )
-        track->loopsMax = aToi( strChr( rexp->ptr, ',' ) + 1 );
-      else
-        track->loopsMax = track->loopsMin;
+    case '?' : cutRexp( rexp, 1 ); track->loopsMin = 0; track->loopsMax =   1; return;
+    case '+' : cutRexp( rexp, 1 ); track->loopsMin = 1; track->loopsMax = INF; return;
+    case '*' : cutRexp( rexp, 1 ); track->loopsMin = 0; track->loopsMax = INF; return;
+    case '{' : cutRexp( rexp, 1 );
+      track->loopsMin = aToi( rexp->ptr );
+      cutRexp( rexp, countCharDigits( rexp->ptr ) );
+      if( *rexp->ptr == ',' ){
+        cutRexp( rexp, 1 );
+        if( *rexp->ptr == '}' )
+          track->loopsMax = INF;
+        else {
+          track->loopsMax = aToi( rexp->ptr );
+          cutRexp( rexp, countCharDigits( rexp->ptr  ) );
+        }
+      } else track->loopsMax = track->loopsMin;
 
-      len = strChr( rexp->ptr, '}' ) - rexp->ptr + 1;
+      cutRexp( rexp, 1 );
     }
-
-  fwrTrack( rexp, len );
 }
 
-static void bracket( struct RE *rexp ){
+static void genSet( struct RE *rexp ){
   struct RE track;
 
   if( rexp->ptr[0] == '^' ){
-    fwrTrack( rexp, 1 );
+    cutRexp( rexp, 1 );
     if( rexp->mods & MOD_NEGATIVE ) rexp->mods &= ~MOD_NEGATIVE;
     else                            rexp->mods |=  MOD_NEGATIVE;
   }
 
-  tableAppend( rexp, COM_BRACKET_INI );
+  tableAppend( rexp, COM_SET_INI );
 
-  while( tracker( rexp, &track ) ){
+  while( trackerSet( rexp, &track ) ){
     switch( track.type ){
     case META   : tableAppend( &track, COM_META    ); break;
     case RANGEAB: tableAppend( &track, COM_RANGEAB ); break;
     case UTF8   : tableAppend( &track, COM_UTF8    ); break;
-    case POINT  : tableAppend( &track, COM_POINT   ); break;
     default     : tableAppend( &track, COM_SIMPLE  ); break;
     }
   }
 
   tableClose( rexp->index );
-  tableAppend( NIL, COM_BRACKET_END );
+  tableAppend( NIL, COM_SET_END );
 }
 
-static int  walker       ( int  index );
-static int  trekking     ( int  index );
-static int  loopGroup    ( int  index );
-static int  looper       ( int  index );
+static int trackerSet( struct RE *rexp, struct RE *track ){
+  if( rexp->len == 0 ) return FALSE;
 
-static int  match        ( int  index );
-static int  matchBracket ( int  index );
-static int  matchBackRef ( int  index );
-static int  matchRange   ( int  index, int   chr );
-static int  matchMeta    ( int  index, char *txt );
-static int  matchText    ( int  index, char *txt );
+  switch( *rexp->ptr & xooooooo ? UTF8 : *rexp->ptr ){
+  case ':' : cutByLen ( rexp, track, 2,                    META    ); break;
+  case UTF8: cutByLen ( rexp, track, utf8meter(rexp->ptr), UTF8    ); break;
+  default  :
+    for( int i = 1; i < rexp->len; i++ )
+      switch( rexp->ptr[ i ] & xooooooo ? UTF8 : rexp->ptr[ i ] ){
+      case ':': case UTF8:
+        cutByLen( rexp, track, i, SIMPLE  ); goto setL;
+      case '-':
+        if( i == 1 ) cutByLen( rexp, track,     3, RANGEAB );
+        else         cutByLen( rexp, track, i - 1, SIMPLE  );
+        goto setL;
+      }
+
+    cutByLen( rexp, track, rexp->len, SIMPLE  );
+  }
+
+ setL:
+  track->loopsMin = track->loopsMax = 1;
+  return TRUE;
+}
+
+static int  walker       ( const int  index );
+static int  trekking     ( int  index );
+static int  loopGroup    ( const int index );
+static int  looper       ( const int index );
+
+static int  match        ( const int  index );
+static int  matchSet     ( int  index );
+static int  matchBackRef ( const int  index );
+static int  matchRange   ( const int  index, int   chr );
+static int  matchMeta    ( const int  index, const char *txt );
+static int  matchText    ( const int  index, const char *txt );
 
 static void openCatch    ( int *index );
-static void closeCatch   ( int  index );
-static int  lastIdCatch  ( int  id    );
+static void closeCatch   ( const int  index );
+static int  lastIdCatch  ( const int  id    );
 
-int regexp4( char *txt, char *re ){
+int regexp4( const char *txt, const char *re ){
   int result   = 0;
   text.len     = strLen( txt );
   Catch.ptr[0] = txt;
@@ -366,7 +417,7 @@ int regexp4( char *txt, char *re ){
   return result;
 }
 
-static int trekking( int index ){
+static int trekking( const int index ){
   int iCatch, result = FALSE;
 
   switch( table[ index ].command ){
@@ -375,7 +426,7 @@ static int trekking( int index ){
   case COM_PATH_ELE   :
   case COM_GROUP_END  :
   case COM_HOOK_END   :
-  case COM_BRACKET_END: return TRUE;
+  case COM_SET_END    : return TRUE;
   case COM_PATH_INI   : result = walker   ( index ); break;
   case COM_GROUP_INI  : result = loopGroup( index ); break;
   case COM_HOOK_INI   :
@@ -383,18 +434,15 @@ static int trekking( int index ){
     if( loopGroup( index ) ){
       closeCatch( iCatch );
       result = TRUE;
-    } break;
-  case COM_BRACKET_INI:
-  case COM_BACKREF    :
-  case COM_META       :
-  case COM_UTF8       :
-  case COM_RANGEAB    :
-  case COM_POINT      :
-  case COM_SIMPLE     : result = looper   ( index ); break;
+    }
+    break;
+  // COM_SET_INI COM_BACKREF COM_META COM_UTF8 COM_POINT !COM_RANGEAB COM_SIMPLE
+  default             : result = looper   ( index ); break;
   }
 
   if( result && trekking( table[ index ].close + 1 ) ) return TRUE;
-  else                                                 return FALSE;
+
+  return FALSE;
 }
 
 static int walker( int index ){
@@ -402,31 +450,29 @@ static int walker( int index ){
   for( const int oCindex = Catch.index, oCidx = Catch.idx, oTpos = text.pos;
        table[ index ].command == COM_PATH_ELE;
        index = table[ index ].close, Catch.index = oCindex, Catch.idx = oCidx, text.pos = oTpos )
-    if( table[ index ].re.len && trekking( index + 1 ) ) return TRUE;
+    if( trekking( index + 1 ) ) return TRUE;
 
   return FALSE;
 }
 
-static int loopGroup( int index ){
+static int loopGroup( const int index ){
   int loops = 0, textPos = text.pos;
 
-  if( table[ index ].re.len ){
-    if( table[ index ].re.mods & MOD_NEGATIVE ){
-      while( loops < table[ index ].re.loopsMax && !trekking( index + 1 ) ){
-        textPos++;
-        text.pos = textPos;
-        loops++;
-      }
-      text.pos = textPos;
-    } else
-      while( loops < table[ index ].re.loopsMax && trekking( index + 1 ) )
-        loops++;
-  }
+  if( table[ index ].re.mods & MOD_NEGATIVE ){
+    while( loops < table[ index ].re.loopsMax && !trekking( index + 1 ) ){
+      textPos  += utf8meter( text.ptr + textPos );
+      text.pos  = textPos;
+      loops++;
+    }
+    text.pos = textPos;
+  } else
+    while( loops < table[ index ].re.loopsMax && trekking( index + 1 ) )
+      loops++;
 
   return loops < table[ index ].re.loopsMin ? FALSE : TRUE;
 }
 
-static int looper( int index ){
+static int looper( const int index ){
   int steps, loops = 0;
 
   if( table[ index ].re.mods & MOD_NEGATIVE )
@@ -443,32 +489,23 @@ static int looper( int index ){
   return loops < table[ index ].re.loopsMin ? FALSE : TRUE;
 }
 
-static int match( int index ){
+static int match( const int index ){
   switch( table[index].re.type ){
   case POINT  : return utf8meter( text.ptr + text.pos );
-  case BRACKET: return matchBracket( index );
+  case SET    : return matchSet    ( index );
   case BACKREF: return matchBackRef( index );
-  case RANGEAB: return matchRange  ( index, text.ptr[ text.pos ] );
-  case META   : return matchMeta   ( index, text.ptr + text.pos  );
-  default     : return matchText   ( index, text.ptr + text.pos  );
+  case META   : return matchMeta   ( index, text.ptr + text.pos );
+  default     : return matchText   ( index, text.ptr + text.pos );
   }
 }
 
-static int matchText( int index, char *txt ){
+static int matchText( const int index, const char *txt ){
   if( table[ index ].re.mods & MOD_COMMUNISM )
     return    strnEqlCommunist( txt, table[ index ].re.ptr, table[ index ].re.len ) ? table[ index ].re.len : 0;
   else return strnEql         ( txt, table[ index ].re.ptr, table[ index ].re.len ) ? table[ index ].re.len : 0;
 }
 
-static int matchRange( int index, int chr ){
-  if( table[ index ].re.mods & MOD_COMMUNISM ){
-    chr = toLower( chr );
-    return chr >= toLower( table[ index ].re.ptr[ 0 ] ) && chr <= toLower( table[ index ].re.ptr[ 2 ] );
-  } else
-    return chr >=          table[ index ].re.ptr[ 0 ]   && chr <=          table[ index ].re.ptr[ 2 ];
-}
-
-static int matchMeta( int index, char *txt ){
+static int matchMeta( const int index, const char *txt ){
   switch( table[ index ].re.ptr[1] ){
   case 'a' : return  isAlpha( *txt );
   case 'A' : return !isAlpha( *txt ) ? utf8meter( txt ) : FALSE;
@@ -483,13 +520,12 @@ static int matchMeta( int index, char *txt ){
   }
 }
 
-static int matchBracket( int index ){
+static int matchSet( int index ){
   int result = 0;
-  for( index++; result == 0 && table[ index ].command != COM_BRACKET_END; index++ ){
+  for( index++; result == 0 && table[ index ].command != COM_SET_END; index++ ){
     switch( table[ index ].command ){
+    case COM_RANGEAB: result = matchRange( index, text.ptr[ text.pos ] ); break;
     case COM_UTF8   :
-    case COM_POINT  :
-    case COM_RANGEAB:
     case COM_META   : result = match( index ); break;
     default         :
       if( table[ index ].re.mods & MOD_COMMUNISM )
@@ -503,15 +539,24 @@ static int matchBracket( int index ){
   return FALSE;
 }
 
-static int matchBackRef( int index ){
-  int backRefIndex = lastIdCatch( aToi( table[ index ].re.ptr + 1 ) );
+static int matchRange( const int index, int chr ){
+  if( table[ index ].re.mods & MOD_COMMUNISM ){
+    chr = toLower( chr );
+    return chr >= toLower( table[ index ].re.ptr[ 0 ] ) && chr <= toLower( table[ index ].re.ptr[ 2 ] );
+  } else
+    return chr >=          table[ index ].re.ptr[ 0 ]   && chr <=          table[ index ].re.ptr[ 2 ];
+}
+
+static int matchBackRef( const int index ){
+  const int backRefId    = aToi( table[ index ].re.ptr + 1 );
+  const int backRefIndex = lastIdCatch( backRefId );
   if( gpsCatch( backRefIndex ) == NIL ||
       strnEql( text.ptr + text.pos, gpsCatch( backRefIndex ), lenCatch( backRefIndex ) ) == FALSE )
     return FALSE;
   else return lenCatch( backRefIndex );
 }
 
-static int lastIdCatch( int id ){
+static int lastIdCatch( const int id ){
   for( int index = Catch.index - 1; index > 0; index-- )
     if( Catch.id[ index ] == id ) return index;
 
@@ -526,22 +571,22 @@ static void openCatch( int *index ){
   } else *index = MAX_CATCHS;
 }
 
-static void closeCatch( int index ){
+static void closeCatch( const int index ){
   if( index < MAX_CATCHS )
     Catch.len[ index ] = &text.ptr[ text.pos ] - Catch.ptr[ index ];
 }
 
 int totCatch(){ return Catch.index - 1; }
 
-char * gpsCatch( int index ){
+const char * gpsCatch( const int index ){
   return ( index > 0 && index < Catch.index ) ? Catch.ptr[ index ] : 0;
 }
 
-int lenCatch( int index ){
+int lenCatch( const int index ){
   return ( index > 0 && index < Catch.index ) ? Catch.len[ index ] : 0;
 }
 
-char * cpyCatch( char * str, int index ){
+char * cpyCatch( char * str, const int index ){
   if( index > 0 && index < Catch.index )
     strnCpy( str, Catch.ptr[ index ], Catch.len[ index ] );
   else *str = '\0';
@@ -549,8 +594,9 @@ char * cpyCatch( char * str, int index ){
   return str;
 }
 
-char * rplCatch( char * newStr, char * rplStr, int id ){
-  char *oNewStr = newStr, *text = Catch.ptr[ 0 ];
+char * rplCatch( char * newStr, const char * rplStr, const int id ){
+  char *oNewStr = newStr;
+  const char *text = Catch.ptr[ 0 ];
   strCpy( newStr, text );
 
   for( int index = 1; index < Catch.index; index++ )
@@ -565,8 +611,10 @@ char * rplCatch( char * newStr, char * rplStr, int id ){
   return oNewStr;
 }
 
-char * putCatch( char * newStr, char * putStr ){
-  int  index; char *pos, *oNewStr = newStr;
+char * putCatch( char * newStr, const char * putStr ){
+  int  index;
+  char *oNewStr = newStr;
+  const char *pos;
   strCpy( newStr, putStr );
 
   while( (pos = strChr( putStr, '#' )) ){
