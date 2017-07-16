@@ -409,32 +409,31 @@ int regexp4( const char *txt, const char *re ){
   return result;
 }
 
-static int trekking( const int index ){
-  int iCatch, result = FALSE;
-
-  switch( table[ index ].command ){
-  case COM_END        :
-  case COM_PATH_END   :
-  case COM_PATH_ELE   :
-  case COM_GROUP_END  :
-  case COM_HOOK_END   :
-  case COM_SET_END    : return TRUE;
-  case COM_PATH_INI   : result = walker   ( index ); break;
-  case COM_GROUP_INI  : result = loopGroup( index ); break;
-  case COM_HOOK_INI   :
-    openCatch( &iCatch );
-    if( loopGroup( index ) ){
-      closeCatch( iCatch );
-      result = TRUE;
+static int trekking( int index ){
+  for( int iCatch, result = FALSE; table[ index ].command != COM_END; index = table[ index ].close + 1 ){
+    switch( table[ index ].command ){
+    case COM_END        :
+    case COM_PATH_END   :
+    case COM_PATH_ELE   :
+    case COM_GROUP_END  :
+    case COM_HOOK_END   :
+    case COM_SET_END    : return TRUE;
+    case COM_PATH_INI   : result = walker   ( index ); break;
+    case COM_GROUP_INI  : result = loopGroup( index ); break;
+    case COM_HOOK_INI   :
+      openCatch( &iCatch );
+      if( loopGroup( index ) ){
+        closeCatch( iCatch );
+        result = TRUE;
+      } else result = FALSE;
+      break;
+    default             : result = looper   ( index ); break;
     }
-    break;
-  // COM_SET_INI COM_BACKREF COM_META COM_UTF8 COM_POINT !COM_RANGEAB COM_SIMPLE
-  default             : result = looper   ( index ); break;
+
+    if( !result ) return FALSE;
   }
 
-  if( result && trekking( table[ index ].close + 1 ) ) return TRUE;
-
-  return FALSE;
+  return TRUE;
 }
 
 static int walker( int index ){
