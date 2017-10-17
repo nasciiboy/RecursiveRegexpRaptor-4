@@ -268,8 +268,6 @@ static int walkMeta( const char *str, const int len ){
 
 static void getMods( struct RE *rexp, struct RE *track ){
   int inMods = *rexp->ptr == '#', pos = 0;
-  track->mods &= ~MOD_NEGATIVE;
-
   while( inMods )
     switch( rexp->ptr[ ++pos ] ){
     case '^': track->mods |=  MOD_ALPHA     ; break;
@@ -278,7 +276,6 @@ static void getMods( struct RE *rexp, struct RE *track ){
     case '~': track->mods |=  MOD_FwrByChar ; break;
     case '*': track->mods |=  MOD_COMMUNISM ; break;
     case '/': track->mods &= ~MOD_COMMUNISM ; break;
-    case '!': track->mods |=  MOD_NEGATIVE  ; break;
     default : inMods       =  FALSE         ; break;
     }
 
@@ -315,8 +312,7 @@ static void genSet( struct RE *rexp ){
 
   if( rexp->ptr[0] == '^' ){
     cutRexp( rexp, 1 );
-    if( rexp->mods & MOD_NEGATIVE ) rexp->mods &= ~MOD_NEGATIVE;
-    else                            rexp->mods |=  MOD_NEGATIVE;
+    rexp->mods |=  MOD_NEGATIVE;
   }
 
   tableAppend( rexp, COM_SET_INI );
@@ -447,35 +443,19 @@ static int walker( int index ){
 }
 
 static int loopGroup( const int index ){
-  int loops = 0, textPos = text.pos;
-
-  if( table[ index ].re.mods & MOD_NEGATIVE ){
-    while( loops < table[ index ].re.loopsMax && !trekking( index + 1 ) ){
-      textPos  += utf8meter( text.ptr + textPos );
-      text.pos  = textPos;
-      loops++;
-    }
-    text.pos = textPos;
-  } else
-    while( loops < table[ index ].re.loopsMax && trekking( index + 1 ) )
-      loops++;
+  int loops = 0;
+  while( loops < table[ index ].re.loopsMax && trekking( index + 1 ) )
+    loops++;
 
   return loops < table[ index ].re.loopsMin ? FALSE : TRUE;
 }
 
 static int looper( const int index ){
   int steps, loops = 0;
-
-  if( table[ index ].re.mods & MOD_NEGATIVE )
-    while( loops < table[ index ].re.loopsMax && text.pos < text.len && !match( index ) ){
-      text.pos += utf8meter( text.ptr + text.pos );
-      loops++;
-    }
-  else
-    while( loops < table[ index ].re.loopsMax && text.pos < text.len && (steps = match( index )) ){
-      text.pos += steps;
-      loops++;
-    }
+  while( loops < table[ index ].re.loopsMax && text.pos < text.len && (steps = match( index )) ){
+    text.pos += steps;
+    loops++;
+  }
 
   return loops < table[ index ].re.loopsMin ? FALSE : TRUE;
 }
@@ -512,7 +492,7 @@ static int matchMeta( const int index, const char *txt ){
 }
 
 static int matchSet( int index ){
-  int result = 0;
+  int result = 0, negative = table[ index ].re.mods & MOD_NEGATIVE;
   for( index++; result == 0 && table[ index ].command != COM_SET_END; index++ ){
     switch( table[ index ].command ){
     case COM_RANGEAB: result = matchRange( index, text.ptr[ text.pos ] ); break;
@@ -524,10 +504,10 @@ static int matchSet( int index ){
       else result = strnChr         ( table[ index ].re.ptr, text.ptr[ text.pos ], table[ index ].re.len  ) != 0;
     }
 
-    if( result ) return result;
+    if( result ) return negative ? FALSE : result;
   }
 
-  return FALSE;
+  return negative ? utf8meter( text.ptr + text.pos ) : FALSE;
 }
 
 static int matchRange( const int index, int chr ){
